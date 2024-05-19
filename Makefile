@@ -6,7 +6,7 @@ CC = gcc
 LibFile = ar
 
 # Toolflags:
-CCCommonFlags = -c -IC: -Wall -Wextra -pedantic -std=c99 -MMD -MP -o $@
+CCCommonFlags = -c -Wall -Wextra -pedantic -std=c99 -MMD -MP -o $@
 CCFlags = $(CCCommonFlags) -DNDEBUG -O3
 CCDebugFlags = $(CCCommonFlags) -g -DDEBUG_OUTPUT
 LibFileFlags = -rcs $@
