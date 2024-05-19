@@ -124,7 +124,7 @@ no longer predefined.
 - 'Makefile' is intended for use with GNU Make and the GNU C Compiler on Linux.
 - 'NMakefile' is intended for use with Acorn Make Utility (AMU) and the
    Norcroft C compiler supplied with the Acorn C/C++ Development Suite.
-- 'GMakefile' is intended for use with GNU Make and the GNU C Compiler.
+- 'GMakefile' is intended for use with GNU Make and the GNU C Compiler on RISC OS.
 
 These make files share some variable definitions (including a list of
 objects to be built) by including a common make file.
