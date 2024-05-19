@@ -1,0 +1,3 @@
+# Project:   3dObjLib
+LibName = 3dObj
+ObjectList = ObjFile Clip Group Primitive Vector Vertex
