@@ -1,7 +1,7 @@
 # 3dObjLib
 (C) 2018 Christopher Bazley
 
-Release 8 (30 Jul 2022)
+Release 9 (19 May 2024)
 
 Preamble
 --------
@@ -113,18 +113,20 @@ linker. Otherwise, you will get build-time errors.
 Rebuilding the library
 ----------------------
   You should ensure that the standard C library and CBDebugLib (by the same
-author as 3dObjLib) are on your C$Path, otherwise the compiler won't be able
-to find the required header files. The dependency on CBDebugLib isn't very
-strong: it can be eliminated by modifying the make file so that the macro
-USE_CBDEBUG is no longer predefined.
+author as 3dObjLib) are on your header include path (C$Path if using the
+supplied make files on RISC OS), otherwise the compiler won't be able to find
+the required header files. The dependency on CBDebugLib isn't very strong: it
+can be eliminated by modifying the make file so that the macro USE_CBDEBUG is
+no longer predefined.
 
-  Two make files are supplied:
+  Three make files are supplied:
 
+- 'Makefile' is intended for use with GNU Make and the GNU C Compiler on Linux.
 - 'NMakefile' is intended for use with Acorn Make Utility (AMU) and the
    Norcroft C compiler supplied with the Acorn C/C++ Development Suite.
 - 'GMakefile' is intended for use with GNU Make and the GNU C Compiler.
 
-  These make files share some variable definitions (including a list of
+These make files share some variable definitions (including a list of
 objects to be built) by including a common make file.
 
   The APCS variant specified for the Norcroft compiler is 32 bit for
@@ -132,8 +134,9 @@ compatibility with ARMv5 and fpe2 for compatibility with older versions of
 the floating point emulator. Generation of unaligned data loads/stores is
 disabled for compatibility with ARM v6.
 
-  The suffix rules put object files in one of several directories, depending
-on the compiler options used to compile them:
+  The suffix rules generate output files with different suffixes (or in
+different subdirectories, if using the supplied make files on RISC OS),
+depending on the compiler options used to compile the source code:
 
 o: Assertions and debugging output are disabled. The code is optimised for
    execution speed.
@@ -158,6 +161,11 @@ subdirectories referenced by path even if the directory name is in
 UnixEnv$make$sfix, which is why 'GMakefile' uses the built-in function
 addsuffix instead of addprefix to construct lists of the objects to be
 built (e.g. foo.o instead of o.foo).
+
+  Before compiling the library for RISC OS, move the C source and header
+files with .c and .h suffixes into subdirectories named 'c' and 'h' and
+remove those suffixes from their names. You probably also need to create
+'o', 'd' and 'debug' subdirectories for compiler output.
 
 Licence and disclaimer
 ----------------------
@@ -242,6 +250,9 @@ Release 8 (30 Jul 2022)
 - Removed redundant uses of the 'extern' keyword.
 - Extra range check in primitive_get_side() to stop a wrong warning from
   GCC's -Warray-bounds.
+
+Release 9 (19 May 2024)
+- Added a new make file for use on Linux.
 
 Contact details
 ---------------
