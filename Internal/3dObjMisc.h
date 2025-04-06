@@ -17,12 +17,54 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+/* History:
+  CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
+ */
+
 #ifndef M3dObjMisc_h
 #define M3dObjMisc_h
 
 /* Fortified memory allocation shell */
 #ifdef FORTIFY
 #include "Fortify.h"
+#endif
+
+#ifdef USE_OPTIONAL
+#include <stdlib.h>
+
+#undef NULL
+#define NULL ((_Optional void *)0)
+
+static inline void optional_free(_Optional void *x)
+{
+    free((void *)x);
+}
+#undef free
+#define free(x) optional_free(x)
+
+static inline _Optional void *optional_malloc(size_t n)
+{
+    return malloc(n);
+}
+#undef malloc
+#define malloc(n) optional_malloc(n)
+
+static inline _Optional void *optional_calloc(size_t sz, size_t n)
+{
+    return calloc(sz, n);
+}
+#undef calloc
+#define calloc(n) optional_calloc(sz, n)
+
+static inline _Optional void *optional_realloc(_Optional void *p, size_t n)
+{
+    return realloc((void *)p, n);
+}
+#undef realloc
+#define realloc(p, n) optional_realloc(p, n)
+
+#else
+#define _Optional
 #endif
 
 #ifdef USE_CBDEBUG

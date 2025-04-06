@@ -41,10 +41,10 @@
 #include <limits.h>
 
 /* Local header files */
-#include "Internal/3dObjMisc.h"
 #include "Vector.h"
 #include "Coord.h"
 #include "Vertex.h"
+#include "Internal/3dObjMisc.h"
 
 void vertex_array_init(VertexArray * const varray)
 {
@@ -72,15 +72,15 @@ void vertex_array_free(VertexArray * const varray)
   free(varray->sorted);
 }
 
-Vertex *vertex_array_get_vertex(const VertexArray * const varray, const int n)
+_Optional Vertex *vertex_array_get_vertex(const VertexArray * const varray, const int n)
 {
-  Vertex *vertex = NULL;
+  _Optional Vertex *vertex = NULL;
 
   assert(varray != NULL);
   assert(varray->nvertices >= 0);
   assert(varray->nvertices <= varray->nalloc);
 
-  if ((n >= 0) && (n < varray->nvertices)) {
+  if ((n >= 0) && (n < varray->nvertices) && varray->vertices) {
     vertex = &varray->vertices[n];
   } else {
     DEBUGF("Invalid vertex number %d\n", n);
@@ -110,7 +110,7 @@ void vertex_array_set_all_used(const VertexArray *varray)
 
 void vertex_array_set_used(const VertexArray * const varray, const int n)
 {
-  Vertex * const vertex = vertex_array_get_vertex(varray, n);
+  _Optional Vertex *const vertex = vertex_array_get_vertex(varray, n);
   if (vertex != NULL) {
     DEBUGF("Marking vertex %d\n", n);
     vertex->marked = true;
@@ -120,7 +120,7 @@ void vertex_array_set_used(const VertexArray * const varray, const int n)
 bool vertex_array_is_used(const VertexArray * const varray, const int n)
 {
   bool is_used = false;
-  Vertex * const vertex = vertex_array_get_vertex(varray, n);
+  _Optional Vertex *const vertex = vertex_array_get_vertex(varray, n);
   if (vertex != NULL) {
     is_used = vertex->marked;
     DEBUGF("Vertex %d is%s marked\n", n, is_used ? "" : " not");
@@ -131,7 +131,7 @@ bool vertex_array_is_used(const VertexArray * const varray, const int n)
 int vertex_array_get_id(const VertexArray * const varray, const int n)
 {
   int id = -1;
-  Vertex *vertex = vertex_array_get_vertex(varray, n);
+  _Optional Vertex *vertex = vertex_array_get_vertex(varray, n);
   while ((vertex != NULL) && (vertex->dup >= 0)) {
     DEBUGF("Vertex %d duplicates %d\n", n, vertex->dup);
     vertex = vertex_array_get_vertex(varray, vertex->dup);
@@ -143,10 +143,10 @@ int vertex_array_get_id(const VertexArray * const varray, const int n)
   return id;
 }
 
-Coord (*vertex_array_get_coords(const VertexArray * const varray, const int n))[3]
+_Optional Coord (*vertex_array_get_coords(const VertexArray * const varray, const int n))[3]
 {
-  Coord (*coords)[3] = NULL;
-  Vertex * const vertex = vertex_array_get_vertex(varray, n);
+  _Optional Coord (*coords)[3] = NULL;
+  _Optional Vertex * const vertex = vertex_array_get_vertex(varray, n);
   if (vertex != NULL) {
     coords = &vertex->coords;
   }
@@ -166,11 +166,11 @@ int vertex_array_alloc_vertices(VertexArray * const varray, const int n)
         new_n = n;
       }
       const size_t nbytes = sizeof(Vertex) * new_n;
-      Vertex * const new_alloc = realloc(varray->vertices, nbytes);
+      _Optional Vertex * const new_alloc = realloc(varray->vertices, nbytes);
       if (new_alloc == NULL) {
         DEBUGF("Failed to allocate %zu bytes for vertices\n", nbytes);
       } else {
-        varray->vertices = new_alloc;
+        varray->vertices = &*new_alloc;
         varray->nalloc = new_n;
       }
     }
@@ -184,34 +184,38 @@ int vertex_array_alloc_vertices(VertexArray * const varray, const int n)
 
 int vertex_array_add_vertex(VertexArray * const varray, Coord (* const coords)[3])
 {
-  int v = -1;
-
   assert(varray != NULL);
   assert(coords != NULL);
   assert(varray->nvertices >= 0);
   assert(varray->nvertices < INT_MAX);
 
   const int new_nvert = varray->nvertices + 1;
-  if (vertex_array_alloc_vertices(varray, new_nvert) >= new_nvert) {
-    v = varray->nvertices++;
-    assert(varray->nvertices <= varray->nalloc);
-
-    Vertex * const vertex = vertex_array_get_vertex(varray, v);
-    assert(vertex != NULL);
-
-    *vertex = (Vertex){
-      .marked = false,
-      .id = v,
-      .dup = -1,
-    };
-
-    for (size_t dim = 0; dim < ARRAY_SIZE(*coords); ++dim) {
-      vertex->coords[dim] = (*coords)[dim];
-    }
-
-    DEBUGF("Added vertex %d {%"PCOORD",%"PCOORD",%"PCOORD"}\n", v,
-           (*coords)[0], (*coords)[1], (*coords)[2]);
+  if (vertex_array_alloc_vertices(varray, new_nvert) < new_nvert) {
+    return -1;
   }
+
+  _Optional Vertex * const vertices = varray->vertices;
+  if (!vertices) {
+    return -1;
+  }
+
+  int const v = varray->nvertices++;
+  assert(varray->nvertices <= varray->nalloc);
+
+  Vertex * const vertex = &vertices[v];
+
+  *vertex = (Vertex){
+    .marked = false,
+    .id = v,
+    .dup = -1,
+  };
+
+  for (size_t dim = 0; dim < ARRAY_SIZE(*coords); ++dim) {
+    vertex->coords[dim] = (*coords)[dim];
+  }
+
+  DEBUGF("Added vertex %d {%"PCOORD",%"PCOORD",%"PCOORD"}\n", v,
+          (*coords)[0], (*coords)[1], (*coords)[2]);
 
   return v;
 }
@@ -258,9 +262,10 @@ int vertex_array_find_duplicates(VertexArray * const varray,
   assert(varray->nvertices <= varray->nalloc);
 
   const int nvertices = varray->nvertices;
-  if (nvertices > 0) {
+  if (nvertices > 0 && varray->vertices) {
     /* Allocate a temporary array of pointers to vertices */
-    if (nvertices > varray->nsorted) {
+    Vertex *_Optional *new_sorted = varray->sorted;
+    if (nvertices > varray->nsorted || !new_sorted) {
       int new_n = varray->nsorted ? varray->nsorted * 2 : 8;
       if (new_n < nvertices) {
         new_n = nvertices;
@@ -268,17 +273,18 @@ int vertex_array_find_duplicates(VertexArray * const varray,
       const size_t nbytes = sizeof(Vertex *) * new_n;
       free(varray->sorted);
       varray->nsorted = 0;
-      varray->sorted = malloc(nbytes);
-      if (varray->sorted == NULL) {
+      new_sorted = malloc(nbytes);
+      if (new_sorted == NULL) {
         if (verbose) {
           printf("Failed to allocate %zu bytes for sorted vertices\n",
                  nbytes);
         }
         return -1;
       }
+      varray->sorted = new_sorted;
       varray->nsorted = nvertices;
     }
-    Vertex ** const sorted = varray->sorted;
+    Vertex ** const sorted = &*new_sorted;
 
     for (int v = 0; v < nvertices; ++v) {
       sorted[v] = &varray->vertices[v];
@@ -339,7 +345,8 @@ int vertex_array_find_vertex(const VertexArray * const varray, Coord (* const co
 
   const int nvertices = varray->nvertices;
   for (int v = 0; v < nvertices; ++v) {
-    if (vector_equal(vertex_array_get_coords(varray, v), coords)) {
+    _Optional Coord (*const candidate)[3] = vertex_array_get_coords(varray, v);
+    if (candidate && vector_equal(&*candidate, coords)) {
       found = v;
       break;
     }
@@ -365,21 +372,23 @@ int vertex_array_renumber(VertexArray * const varray, const bool verbose)
   /* Renumber marked vertices */
   int next_id = 0;
   const int nvertices = varray->nvertices;
-  for (int v = 0; v < nvertices; ++v) {
-    Vertex * const vertex = vertex_array_get_vertex(varray, v);
-    assert(vertex != NULL);
-    if (vertex->marked) {
-      /* Keep this vertex */
-      if (next_id != v) {
-        if (verbose) {
-          printf("Renumbering vertex %d as %d "
-                 "{%"PCOORD",%"PCOORD",%"PCOORD"}\n",
-                 vertex->id, next_id,
-                 vertex->coords[0], vertex->coords[1], vertex->coords[2]);
+  if (varray->vertices) {
+    for (int v = 0; v < nvertices; ++v) {
+      Vertex * const vertex = &varray->vertices[v];
+      assert(vertex != NULL);
+      if (vertex->marked) {
+        /* Keep this vertex */
+        if (next_id != v) {
+          if (verbose) {
+            printf("Renumbering vertex %d as %d "
+                  "{%"PCOORD",%"PCOORD",%"PCOORD"}\n",
+                  vertex->id, next_id,
+                  vertex->coords[0], vertex->coords[1], vertex->coords[2]);
+          }
+          vertex->id = next_id;
         }
-        vertex->id = next_id;
+        ++next_id;
       }
-      ++next_id;
     }
   }
   if (verbose) {
@@ -402,18 +411,22 @@ bool vertex_array_edge_intersects_line(const VertexArray * const varray,
   assert(c != d);
   assert(intersect != NULL);
 
-  Coord (* const va)[3] = vertex_array_get_coords(varray, a);
-  Coord (* const vb)[3] = vertex_array_get_coords(varray, b);
-  Coord (* const vc)[3] = vertex_array_get_coords(varray, c);
-  Coord (* const vd)[3] = vertex_array_get_coords(varray, d);
+  _Optional Coord (* const va)[3] = vertex_array_get_coords(varray, a),
+                  (* const vb)[3] = vertex_array_get_coords(varray, b),
+                  (* const vc)[3] = vertex_array_get_coords(varray, c),
+                  (* const vd)[3] = vertex_array_get_coords(varray, d);
 
-  if (!vector_intersect(va, vb, vc, vd, p, intersect)) {
+  if (!va || !vb || !vc || !vd) {
+    return false;
+  }
+
+  if (!vector_intersect(&*va, &*vb, &*vc, &*vd, p, intersect)) {
     return false;
   }
 
   const Coord ix = *vector_x(intersect, p),
-              ax = *vector_x(va, p),
-              bx = *vector_x(vb, p);
+              ax = *vector_x(&*va, p),
+              bx = *vector_x(&*vb, p);
 
   const Coord low_x = LOWEST(ax, bx);
   if (coord_less_than(ix, low_x)) {
@@ -430,8 +443,8 @@ bool vertex_array_edge_intersects_line(const VertexArray * const varray,
   }
 
   const Coord iy = *vector_y(intersect, p),
-              ay = *vector_y(va, p),
-              by = *vector_y(vb, p);
+              ay = *vector_y(&*va, p),
+              by = *vector_y(&*vb, p);
 
   const Coord low_y = LOWEST(ay, by);
   if (coord_less_than(iy, low_y)) {
@@ -449,7 +462,7 @@ bool vertex_array_edge_intersects_line(const VertexArray * const varray,
 
   /* Treat the endpoint as exclusive to avoid detecting the same
      intersection twice at each vertex of a primitive. */
-  if (vector_equal(intersect, vb)) {
+  if (vector_equal(intersect, &*vb)) {
     DEBUGF("Ignoring intersection at B\n");
     return false;
   }
@@ -471,13 +484,17 @@ bool vertex_array_edges_intersect(const VertexArray * const varray,
   assert(c != d);
   assert(intersect != NULL);
 
-  Coord (* const va)[3] = vertex_array_get_coords(varray, a);
-  Coord (* const vb)[3] = vertex_array_get_coords(varray, b);
-  Coord (* const vc)[3] = vertex_array_get_coords(varray, c);
-  Coord (* const vd)[3] = vertex_array_get_coords(varray, d);
+  _Optional Coord (* const va)[3] = vertex_array_get_coords(varray, a),
+                  (* const vb)[3] = vertex_array_get_coords(varray, b),
+                  (* const vc)[3] = vertex_array_get_coords(varray, c),
+                  (* const vd)[3] = vertex_array_get_coords(varray, d);
 
-  const Coord ax = *vector_x(va, p), bx = *vector_x(vb, p),
-              cx = *vector_x(vc, p), dx = *vector_x(vd, p);
+  if (!va || !vb || !vc || !vd) {
+    return false;
+  }
+
+  const Coord ax = *vector_x(&*va, p), bx = *vector_x(&*vb, p),
+              cx = *vector_x(&*vc, p), dx = *vector_x(&*vd, p);
 
   const Coord ab_low_x = LOWEST(ax, bx);
   const Coord ab_high_x = HIGHEST(ax, bx);
@@ -501,8 +518,8 @@ bool vertex_array_edges_intersect(const VertexArray * const varray,
     return false;
   }
 
-  const Coord ay = *vector_y(va, p), by = *vector_y(vb, p),
-              cy = *vector_y(vc, p), dy = *vector_y(vd, p);
+  const Coord ay = *vector_y(&*va, p), by = *vector_y(&*vb, p),
+              cy = *vector_y(&*vc, p), dy = *vector_y(&*vd, p);
 
   const Coord ab_low_y = LOWEST(ay, by);
   const Coord ab_high_y = HIGHEST(ay, by);
@@ -522,7 +539,7 @@ bool vertex_array_edges_intersect(const VertexArray * const varray,
     return false;
   }
 
-  if (!vector_intersect(va, vb, vc, vd, p, intersect)) {
+  if (!vector_intersect(&*va, &*vb, &*vc, &*vd, p, intersect)) {
     return false;
   }
 
@@ -563,7 +580,9 @@ bool vertex_array_edges_intersect(const VertexArray * const varray,
 
 void vertex_array_print_vertex(const VertexArray * const varray, const int v)
 {
-  Coord (* const coords)[3] = vertex_array_get_coords(varray, v);
-  printf("%d:{%"PCOORD",%"PCOORD",%"PCOORD"}", v,
-         (*coords)[0], (*coords)[1], (*coords)[2]);
+  _Optional Coord (* const coords)[3] = vertex_array_get_coords(varray, v);
+  if (coords) {
+    printf("%d:{%"PCOORD",%"PCOORD",%"PCOORD"}", v,
+          (*coords)[0], (*coords)[1], (*coords)[2]);
+  }
 }

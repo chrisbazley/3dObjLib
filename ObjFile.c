@@ -20,6 +20,7 @@
 /* History:
   CJB: 05-Aug-18: Copied this source file from SF3KtoObj.
   CJB: 21-Apr-20: Fixed bad output in the form of "# 1 vertice".
+  CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
  */
 
 /* ISO library header files */
@@ -29,11 +30,11 @@
 #include <limits.h>
 
 /* Local header files */
-#include "Internal/3dObjMisc.h"
 #include "ObjFile.h"
 #include "Coord.h"
 #include "Vertex.h"
 #include "Primitive.h"
+#include "Internal/3dObjMisc.h"
 
 static int convert_vnum(const VertexArray * const varray, int v,
                         const int vtotal, const int vobject,
@@ -72,7 +73,10 @@ bool output_vertices(FILE * const out, const int vobject,
       return false;
     }
 
-    Coord (* const coords)[3] = vertex_array_get_coords(varray, v);
+    _Optional Coord (* const coords)[3] = vertex_array_get_coords(varray, v);
+    if (!coords) {
+      continue;
+    }
 
     if (!vertex_array_is_used(varray, v)) {
       DEBUGF("Omitting vertex %d {%"PCOORD",%"PCOORD",%"PCOORD"} "
@@ -198,9 +202,8 @@ bool output_primitives(FILE * const out, const char * const object_name,
                      const VertexArray * const varray,
                      Group const * const groups,
                      int const ngroups,
-                     int (*get_colour)(const Primitive *pp, void *arg),
-                     int (*get_material)(char *buf, size_t buf_size,
-                                         int colour, void *arg),
+                     _Optional output_primitives_get_colour *get_colour,
+                     _Optional output_primitives_get_material *get_material,
                      void *arg, const VertexStyle vstyle,
                      const MeshStyle mstyle)
 {
@@ -226,14 +229,17 @@ bool output_primitives(FILE * const out, const char * const object_name,
     }
 
     for (int p = 0; p < nprimitives; ++p) {
-      const Primitive * const pp = group_get_primitive(group, p);
-      int const colour = (get_colour != NULL) ?
-                         get_colour(pp, arg) :
-                         primitive_get_colour(pp);
+      const _Optional Primitive * const pp = group_get_primitive(group, p);
+      if (!pp) {
+        return false;
+      }
+      int const colour = get_colour ?
+                         get_colour(&*pp, arg) :
+                         primitive_get_colour(&*pp);
 
       if (last_colour != colour) {
         char material[64];
-        int n = (get_material != NULL) ?
+        int n = get_material ?
                 get_material(material, sizeof(material), colour, arg) :
                 snprintf(material, sizeof(material), "colour_%d", colour);
 
@@ -247,7 +253,7 @@ bool output_primitives(FILE * const out, const char * const object_name,
         last_colour = colour;
       }
 
-      if (!output_primitive(out, pp, vtotal, vobject, varray, vstyle, mstyle)) {
+      if (!output_primitive(out, &*pp, vtotal, vobject, varray, vstyle, mstyle)) {
         return false;
       }
     } /* next primitive */

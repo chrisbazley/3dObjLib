@@ -20,6 +20,7 @@
 /* History:
   CJB: 05-Aug-18: Copied this source file from SF3KtoObj.
   CJB: 11-Dec-20: Removed redundant uses of the 'extern' keyword.
+  CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
  */
 
 #ifndef OBJFILE_H
@@ -31,6 +32,10 @@
 #include "Primitive.h"
 #include "Vertex.h"
 #include "Group.h"
+
+#if !defined(USE_OPTIONAL) && !defined(_Optional)
+#define _Optional
+#endif
 
 typedef enum {
   VertexStyle_Positive,
@@ -47,13 +52,17 @@ bool output_vertices(
         FILE *out, int vobject, const VertexArray *varray,
         int rot);
 
+typedef int output_primitives_get_colour(const Primitive *pp, void *arg);
+
+typedef int output_primitives_get_material(char *buf, size_t buf_size,
+  int colour, void *arg);
+
 bool output_primitives(
         FILE *out, const char *object_name,
         int vtotal, int vobject, const VertexArray *varray,
         Group const *groups, int ngroups,
-        int (*get_colour)(const Primitive *pp, void *arg),
-        int (*get_material)(char *buf, size_t buf_size,
-                            int colour, void *arg),
+        _Optional output_primitives_get_colour *get_colour,
+        _Optional output_primitives_get_material *get_material,
         void *arg, VertexStyle vstyle, MeshStyle mstyle);
 
 #endif /* OBJFILE_H */

@@ -45,6 +45,7 @@
                   guard against leaving members uninitialized.
   CJB: 30-Jul-22: Extra range check in primitive_get_side to stop a wrong
                   warning from GCC's -Warray-bounds.
+  CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
  */
 
 /* ISO library header files */
@@ -53,11 +54,11 @@
 #include <stdio.h>
 
 /* Local header files */
-#include "Internal/3dObjMisc.h"
 #include "Primitive.h"
 #include "Vertex.h"
 #include "Vector.h"
 #include "Coord.h"
+#include "Internal/3dObjMisc.h"
 
 void primitive_init(Primitive * const primitive)
 {
@@ -167,7 +168,11 @@ static bool primitive_make_normal(Primitive * const primitive,
 
     for (int side = 0; side < 3; ++side) {
       const int v = primitive_get_side(primitive, side);
-      coords[side] = vertex_array_get_coords(varray, v);
+      _Optional Coord (*c)[3] = vertex_array_get_coords(varray, v);
+      if (!c) {
+        return false;
+      }
+      coords[side] = &*c;
     }
 
     vector_sub(coords[1], coords[0], &side_one);
@@ -290,14 +295,20 @@ static bool primitive_make_bbox(Primitive * const primitive,
     /* Compute the smallest cuboid region containing all vertices of
        the primitive. */
     const int p0 = primitive_get_side(primitive, 0);
-    Coord (* const coords0)[3] = vertex_array_get_coords(varray, p0);
+    _Optional Coord (* const coords0)[3] = vertex_array_get_coords(varray, p0);
+    if (!coords0) {
+      return false;
+    }
     for (size_t dim = 0; dim < ARRAY_SIZE(*coords0); ++dim) {
       (*low)[dim] = (*high)[dim] = (*coords0)[dim];
     }
 
     for (int s = 1; s < nsides; ++s) {
       const int pv = primitive_get_side(primitive, s);
-      Coord (* const coords)[3] = vertex_array_get_coords(varray, pv);
+      _Optional Coord (* const coords)[3] = vertex_array_get_coords(varray, pv);
+      if (!coords) {
+        return false;
+      }
 
       for (size_t dim = 0; dim < ARRAY_SIZE(*coords); ++dim) {
         if ((*coords)[dim] > (*high)[dim]) {
@@ -423,9 +434,13 @@ bool primitive_coplanar(Primitive *p, Primitive *q,
          vertex is 0 if the two vectors are orthogonal, which only occurs if
          the vertex is in the same plane as the polygon. */
       Coord diff[3];
-      vector_sub(vertex_array_get_coords(varray, vp),
-                 vertex_array_get_coords(varray, vq),
-                 &diff);
+      _Optional Coord (*pcoords)[3] = vertex_array_get_coords(varray, vp),
+                      (*qcoords)[3] = vertex_array_get_coords(varray, vq);
+      if (!pcoords || !qcoords) {
+        return false;
+      }
+
+      vector_sub(&*pcoords, &*qcoords, &diff);
 
       const Coord dist = coord_abs(vector_dot(norm, &diff));
 
@@ -492,7 +507,7 @@ static bool primitive_contains_point(Primitive * const primitive,
     return false;
   }
 
-  Coord (*start)[3];
+  _Optional Coord (*start)[3];
   Coord start_x, start_y;
 
   const int last_side = primitive_get_side(primitive, nsides - 1);
@@ -501,20 +516,26 @@ static bool primitive_contains_point(Primitive * const primitive,
     return true;
   }
 
-  Coord (*end)[3] = vertex_array_get_coords(varray, last_side);
-  Coord end_x = *vector_x(end, plane);
-  Coord end_y = *vector_y(end, plane);
+  _Optional Coord (*end)[3] = vertex_array_get_coords(varray, last_side);
+  if (!end) {
+    return false;
+  }
+  Coord end_x = *vector_x(&*end, plane);
+  Coord end_y = *vector_y(&*end, plane);
 
-  Coord (* const point)[3] = vertex_array_get_coords(varray, v);
-  const Coord px = *vector_x(point, plane);
+  _Optional Coord (* const point)[3] = vertex_array_get_coords(varray, v);
+  if (!point) {
+    return false;
+  }
+  const Coord px = *vector_x(&*point, plane);
   Coord py = *vector_y(point, plane);
 
 #if BBOX
   /* If the point is outside the bounding box (even allowing for error)
      then it can't be inside the polygon. */
   assert(primitive->has_bbox);
-  if (!vector_xy_greater_or_equal(point, &primitive->low, plane) ||
-      !vector_xy_greater_or_equal(&primitive->high, point, plane)) {
+  if (!vector_xy_greater_or_equal(&*point, &primitive->low, plane) ||
+      !vector_xy_greater_or_equal(&primitive->high, &*point, plane)) {
     DEBUGF("Point %d is outside bounding box of primitive %p\n",
            v, (void *)primitive);
     return false;
@@ -534,10 +555,13 @@ static bool primitive_contains_point(Primitive * const primitive,
     }
 
     start = vertex_array_get_coords(varray, v2);
-    start_x = *vector_x(start, plane);
-    start_y = *vector_y(start, plane);
-    assert(end_x == *vector_x(end, plane));
-    assert(end_y == *vector_y(end, plane));
+    if (!start) {
+      return false;
+    }
+    start_x = *vector_x(&*start, plane);
+    start_y = *vector_y(&*start, plane);
+    assert(end_x == *vector_x(&*end, plane));
+    assert(end_y == *vector_y(&*end, plane));
 
     DEBUGF("Testing point %d:%"PCOORD",%"PCOORD" against edge %d:"
            "%"PCOORD",%"PCOORD" .. %"PCOORD",%"PCOORD"\n",
@@ -606,7 +630,7 @@ static bool primitive_contains_point(Primitive * const primitive,
     } else {
       /* Sloping edge intersects the horizontal ray somewhere
           along its length. */
-      const Coord m = vector_y_gradient(start, end, plane);
+      const Coord m = vector_y_gradient(&*start, &*end, plane);
        /* The equation of any line is y=mx+c.
           This can be rearranged as c=y-mx. Since we know m, we can
           can substitute the coordinates of any point on the line into
@@ -759,18 +783,26 @@ bool primitive_intersect(const Primitive * const primitive,
              We cannot treat any endpoints of the back polygon's edges as
              exclusive because it's common for a back polygon to be split by
              a line that happens to pass through one of its corners. */
-          if (vector_equal(&intersect,
-                           vertex_array_get_coords(varray, a))) {
+          _Optional Coord (*const acoords)[3] = vertex_array_get_coords(varray, a);
+          if (!acoords) {
+            return false;
+          }
+          if (vector_equal(&intersect, &*acoords)) {
             DEBUGF("Edge %d .. %d is joined with line %d .. %d "
                    "(at vertex %d)\n", a, b, last_side, side, a);
-          } else if (vector_equal(&intersect,
-                                  vertex_array_get_coords(varray, b))) {
-            DEBUGF("Edge %d .. %d is joined with line %d .. %d "
-                   "(at vertex %d)\n", a, b, last_side, side, b);
           } else {
-            DEBUGF("Side %d (%d) of primitive %p intersects edge %d,%d\n",
-                    s, side, (void *)primitive, a, b);
-            return true;
+            _Optional Coord (*const bcoords)[3] = vertex_array_get_coords(varray, b);
+            if (!bcoords) {
+              return false;
+            }
+            if (vector_equal(&intersect, &*bcoords)) {
+              DEBUGF("Edge %d .. %d is joined with line %d .. %d "
+                    "(at vertex %d)\n", a, b, last_side, side, b);
+            } else {
+              DEBUGF("Side %d (%d) of primitive %p intersects edge %d,%d\n",
+                      s, side, (void *)primitive, a, b);
+              return true;
+            }
           }
         }
       }
@@ -998,7 +1030,10 @@ int primitive_get_skew_side(Primitive * const primitive,
   } else {
     /* Check for skew polygons. */
     const int v0 = primitive_get_side(primitive, 0);
-    Coord (* const coords)[3] = vertex_array_get_coords(varray, v0);
+    _Optional Coord (* const coords)[3] = vertex_array_get_coords(varray, v0);
+    if (!coords) {
+      return -1;
+    }
 
     for (int s = 3; s < num_sides; ++s) {
        const int v = primitive_get_side(primitive, s);
@@ -1008,8 +1043,12 @@ int primitive_get_skew_side(Primitive * const primitive,
          described by the first two sides of the primitive and each
          subsequent side must be 0. We compute that as the scalar triple
          product. */
+      Coord (*side_old)[3] = vertex_array_get_coords(varray, v);
+      if (!side_old) {
+        return -1;
+      }
       Coord side_new[3];
-      vector_sub(vertex_array_get_coords(varray, v), coords, &side_new);
+      vector_sub(&*side_old, &*coords, &side_new);
 
       if (primitive_ensure_normal(primitive, varray)) {
         const Coord volume = coord_abs(vector_dot(&primitive->normal, &side_new));

@@ -31,9 +31,9 @@
 #include <stdio.h>
 
 /* Local header files */
-#include "Internal/3dObjMisc.h"
 #include "Vector.h"
 #include "Coord.h"
+#include "Internal/3dObjMisc.h"
 
 Coord *vector_x(Coord (* const a)[3], Plane p)
 {

@@ -20,6 +20,7 @@
 /* History:
   CJB: 05-Aug-18: Copied this source file from SF3KtoObj.
   CJB: 11-Dec-20: Removed redundant uses of the 'extern' keyword.
+  CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
  */
 
 #ifndef GROUP_H
@@ -28,10 +29,14 @@
 #include "Primitive.h"
 #include "Vertex.h"
 
+#if !defined(USE_OPTIONAL) && !defined(_Optional)
+#define _Optional
+#endif
+
 typedef struct {
   int nalloc;
   int nprimitives;
-  Primitive *primitives;
+  _Optional Primitive *primitives;
 } Group;
 
 void group_init(Group *group);
@@ -42,13 +47,13 @@ void group_free(Group *group);
 
 int group_get_num_primitives(const Group *group);
 
-Primitive *group_get_primitive(const Group *group, int n);
+_Optional Primitive *group_get_primitive(const Group *group, int n);
 
 int group_alloc_primitives(Group *group, int n);
 
-Primitive *group_add_primitive(Group *group);
+_Optional Primitive *group_add_primitive(Group *group);
 
-Primitive *group_insert_primitive(Group *group, int prev);
+_Optional Primitive *group_insert_primitive(Group *group, int prev);
 
 void group_delete_primitive(Group *group, int n);
 

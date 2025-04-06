@@ -1,7 +1,7 @@
 # 3dObjLib
 (C) 2018 Christopher Bazley
 
-Release 9 (19 May 2024)
+Release ? (DD MMM YYYY)
 
 Preamble
 --------
@@ -253,6 +253,10 @@ Release 8 (30 Jul 2022)
 
 Release 9 (19 May 2024)
 - Added a new make file for use on Linux.
+
+Release ? (DD MMM YYYY)
+- This version of the library has been used for dogfooding the _Optional
+  qualifier (https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3422.pdf).
 
 Contact details
 ---------------

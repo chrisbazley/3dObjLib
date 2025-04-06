@@ -23,6 +23,7 @@
                   delegated to primitive_contains (which checks a stronger
                   constraint) and primitive_clip.
                   Failure of primitive_clip is now reported in verbose mode.
+  CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
  */
 
 /* ISO library header files */
@@ -30,13 +31,13 @@
 #include <stdio.h>
 
 /* Local header files */
-#include "Internal/3dObjMisc.h"
 #include "Vector.h"
 #include "Coord.h"
 #include "Vertex.h"
 #include "Primitive.h"
 #include "Group.h"
 #include "Clip.h"
+#include "Internal/3dObjMisc.h"
 
 enum { MAX_SPLITS = 1024 };
 
@@ -58,12 +59,15 @@ static bool clip_group_vs_group(VertexArray * const varray,
   Group * const back_group = groups + bg;
   DEBUGF("Back primitive is %d in group %d\n", back, bg);
   assert(back >= 0);
-  Primitive *backp = group_get_primitive(back_group, back);
+  _Optional Primitive *backp = group_get_primitive(back_group, back);
+  if (!backp) {
+    return false;
+  }
 
   /* Find the two-dimensional plane in which to clip the two primitives
      (returns false if the back primitive is a point or line). */
   Plane plane;
-  if (!primitive_find_plane(backp, varray, &plane)) {
+  if (!primitive_find_plane(&*backp, varray, &plane)) {
     return true;
   }
 
@@ -71,26 +75,29 @@ static bool clip_group_vs_group(VertexArray * const varray,
 
   for (; front < group_get_num_primitives(front_group); ++front) {
     DEBUGF("Front primitive is %d in group %d\n", front, fg);
-    Primitive *frontp = group_get_primitive(front_group, front);
+    _Optional Primitive *frontp = group_get_primitive(front_group, front);
+    if (!frontp) {
+      return false;
+    }
 
-    if (primitive_get_num_sides(frontp) < 3) {
+    if (primitive_get_num_sides(&*frontp) < 3) {
       DEBUGF("Can't clip against point or line\n");
       continue;
     }
 
-    if (!primitive_coplanar(frontp, backp, varray)) {
+    if (!primitive_coplanar(&*frontp, &*backp, varray)) {
       continue;
     }
 
     bool split = false, covered = false;
     do {
       assert(!covered);
-      if (primitive_equal(frontp, backp)) {
+      if (primitive_equal(&*frontp, &*backp)) {
         covered = true;
         break;
       }
 
-      if (primitive_contains(frontp, backp, varray, plane)) {
+      if (primitive_contains(&*frontp, &*backp, varray, plane)) {
         /* The back polygon is completely covered by the front polygon */
         covered = true;
         break;
@@ -99,16 +106,16 @@ static bool clip_group_vs_group(VertexArray * const varray,
       split = false;
 
       Primitive newbackp;
-      if (!primitive_clip(backp, frontp, varray, plane, &newbackp, &split)) {
+      if (!primitive_clip(&*backp, &*frontp, varray, plane, &newbackp, &split)) {
         if (verbose) {
           printf("Clipping failed (too many sides?)\n");
         }
         return false;
       }
       if (split) {
-        assert(primitive_coplanar(frontp, backp, varray));
-        assert(primitive_coplanar(&newbackp, backp, varray));
-        Primitive * const r = group_insert_primitive(back_group, back + 1);
+        assert(primitive_coplanar(&*frontp, &*backp, varray));
+        assert(primitive_coplanar(&newbackp, &*backp, varray));
+        _Optional Primitive * const r = group_insert_primitive(back_group, back + 1);
         if (r == NULL) {
           if (verbose) {
             printf("Clipping failed (out of memory)\n");
@@ -130,17 +137,27 @@ static bool clip_group_vs_group(VertexArray * const varray,
            the front polygon) increased by one. */
         if (front_group == back_group) {
           frontp = group_get_primitive(front_group, ++front);
+          if (!frontp) {
+            return false;
+          }
         }
 
         /* In any case, the back group's primitive data may have moved. */
         backp = group_get_primitive(back_group, back);
+        if (!backp) {
+          return false;
+        }
 
         if (verbose) {
           printf("Split polygon %d in group %d behind %d in group %d:\n",
-                 primitive_get_id(backp), bg, primitive_get_id(frontp), fg);
-          primitive_print(backp, varray);
+                 primitive_get_id(&*backp), bg, primitive_get_id(&*frontp), fg);
+          primitive_print(&*backp, varray);
           puts("\n and");
-          primitive_print(group_get_primitive(back_group, back + 1), varray);
+          _Optional Primitive *const behind = group_get_primitive(back_group, back + 1);
+          if (!behind) {
+            return false;
+          }
+          primitive_print(&*behind, varray);
           puts("");
         }
       } else {
@@ -153,8 +170,8 @@ static bool clip_group_vs_group(VertexArray * const varray,
          caused it */
       if (verbose) {
         printf("Deleting polygon %d in group %d behind %d in group %d:\n",
-               primitive_get_id(backp), bg, primitive_get_id(frontp), fg);
-        primitive_print(backp, varray);
+               primitive_get_id(&*backp), bg, primitive_get_id(&*frontp), fg);
+        primitive_print(&*backp, varray);
         puts("");
       }
       group_delete_primitive(back_group, back);

@@ -23,6 +23,7 @@
                   duplicates or a failure indication.
   CJB: 30-Aug-18: Added a function to mark all vertices as used.
   CJB: 11-Dec-20: Removed redundant uses of the 'extern' keyword.
+  CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
  */
 
 #ifndef VERTEX_H
@@ -33,6 +34,10 @@
 
 #include "Vector.h"
 #include "Coord.h"
+
+#if !defined(USE_OPTIONAL) && !defined(_Optional)
+#define _Optional
+#endif
 
 typedef struct {
   Coord coords[3];
@@ -45,8 +50,8 @@ typedef struct {
   int nalloc;
   int nvertices;
   int nsorted;
-  Vertex *vertices;
-  Vertex **sorted;
+  _Optional Vertex *vertices;
+  Vertex *_Optional *sorted;
 } VertexArray;
 
 void vertex_array_init(VertexArray *varray);
@@ -55,7 +60,7 @@ void vertex_array_clear(VertexArray *varray);
 
 void vertex_array_free(VertexArray *varray);
 
-Vertex *vertex_array_get_vertex(const VertexArray *varray, int n);
+_Optional Vertex *vertex_array_get_vertex(const VertexArray *varray, int n);
 
 int vertex_array_get_num_vertices(const VertexArray *varray);
 
@@ -67,7 +72,7 @@ bool vertex_array_is_used(const VertexArray *varray, int n);
 
 int vertex_array_get_id(const VertexArray *varray, int n);
 
-Coord (*vertex_array_get_coords(const VertexArray *varray, int n))[3];
+_Optional Coord (*vertex_array_get_coords(const VertexArray *varray, int n))[3];
 
 int vertex_array_alloc_vertices(VertexArray *varray, int n);
 

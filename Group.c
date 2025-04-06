@@ -21,6 +21,7 @@
   CJB: 05-Aug-18: Copied this source file from SF3KtoObj.
   CJB: 09-Jan-21: Initialize struct using compound literal assignment to
                   guard against leaving members uninitialized.
+  CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
 */
 
 /* ISO library header files */
@@ -29,9 +30,9 @@
 #include <string.h>
 
 /* Local header files */
-#include "Internal/3dObjMisc.h"
 #include "Primitive.h"
 #include "Group.h"
+#include "Internal/3dObjMisc.h"
 
 void group_init(Group * const group)
 {
@@ -67,15 +68,15 @@ void group_free(Group * const group)
   free(group->primitives);
 }
 
-Primitive *group_get_primitive(const Group * const group, const int n)
+_Optional Primitive *group_get_primitive(const Group * const group, const int n)
 {
-  Primitive *primitive = NULL;
+  _Optional Primitive *primitive = NULL;
 
   assert(group != NULL);
   assert(group->nprimitives >= 0);
   assert(group->nprimitives <= group->nalloc);
 
-  if ((n >= 0) && (n < group->nprimitives)) {
+  if ((n >= 0) && (n < group->nprimitives) && group->primitives) {
     primitive = group->primitives + n;
   } else {
     DEBUGF("Invalid primitive number %d\n", n);
@@ -84,7 +85,7 @@ Primitive *group_get_primitive(const Group * const group, const int n)
   return primitive;
 }
 
-Primitive *group_add_primitive(Group * const group)
+_Optional Primitive *group_add_primitive(Group * const group)
 {
   return group_insert_primitive(group, group->nprimitives);
 }
@@ -99,12 +100,11 @@ int group_alloc_primitives(Group * const group, const int n)
     if (n > group->nalloc) {
       const int new_nalloc = group->nalloc ? group->nalloc * 2 : 8;
       const size_t nbytes = sizeof(Primitive) * new_nalloc;
-      Primitive * const new_primitives = realloc(group->primitives, nbytes);
+      _Optional Primitive * const new_primitives = realloc(group->primitives, nbytes);
       if (new_primitives == NULL) {
         DEBUGF("Failed to allocate %zu bytes for primitives\n", nbytes);
       } else {
-        DEBUGF("Moving primitives from %p to %p\n",
-                (void *)group->primitives, (void *)new_primitives);
+        DEBUGF("Moving primitives to %p\n", (void *)new_primitives);
         group->primitives = new_primitives;
         group->nalloc = new_nalloc;
       }
@@ -117,46 +117,51 @@ int group_alloc_primitives(Group * const group, const int n)
   return group->nalloc;
 }
 
-Primitive *group_insert_primitive(Group * const group, const int n)
+_Optional Primitive *group_insert_primitive(Group * const group, const int n)
 {
-  Primitive * primitive = NULL;
-
   assert(group != NULL);
   assert(group->nprimitives >= 0);
   assert(group->nprimitives <= group->nalloc);
 
   /* Allow insert at place beyond last */
-  if ((n >= 0) && (n < group->nprimitives+1)) {
-    const int new_nprim = group->nprimitives + 1;
-    if (group_alloc_primitives(group, new_nprim) >= new_nprim) {
-      ++group->nprimitives;
-      assert(group->nprimitives <= group->nalloc);
-      primitive = group_get_primitive(group, n);
-      assert(primitive != NULL);
-
-      if (group->nprimitives > (n+1)) {
-         memmove(primitive + 1, primitive,
-                 sizeof(Primitive) * (group->nprimitives - (n+1)));
-      }
-
-      primitive_init(primitive);
-
-      DEBUGF("Added primitive %d (%p) in group %p\n", n,
-              (void *)primitive, (void *)group);
-    }
-  } else {
-     DEBUGF("Invalid primitive number %d\n", n);
+  if ((n < 0) || (n >= group->nprimitives+1)) {
+    DEBUGF("Invalid primitive number %d\n", n);
+    return NULL;
   }
+
+  const int new_nprim = group->nprimitives + 1;
+  if (group_alloc_primitives(group, new_nprim) < new_nprim) {
+    return NULL;
+  }
+
+  _Optional Primitive *const primitives = group->primitives;
+  if (!primitives) {
+    return NULL;
+  }
+
+  ++group->nprimitives;
+  assert(group->nprimitives <= group->nalloc);
+  Primitive *const primitive = &*primitives + n;
+
+  if (group->nprimitives > (n+1)) {
+      memmove(primitive + 1, primitive,
+              sizeof(Primitive) * (group->nprimitives - (n+1)));
+  }
+
+  primitive_init(primitive);
+
+  DEBUGF("Added primitive %d (%p) in group %p\n", n,
+          (void *)primitive, (void *)group);
 
   return primitive;
 }
 
 void group_delete_primitive(Group * const group, const int n)
 {
-  Primitive *const primitive = group_get_primitive(group, n);
+  _Optional Primitive *const primitive = group_get_primitive(group, n);
   if (primitive != NULL) {
     if (group->nprimitives > (n+1)) {
-      memmove(primitive, primitive + 1,
+      memmove(&*primitive, &*primitive + 1,
               sizeof(Primitive) * (group->nprimitives - (n+1)));
     }
     --group->nprimitives;
@@ -171,8 +176,9 @@ void group_set_used(const Group * const group, VertexArray * const varray)
   const int nprimitives = group_get_num_primitives(group);
 
   for (int p = 0; p < nprimitives; ++p) {
-    Primitive * const pp = group_get_primitive(group, p);
-    assert(pp != NULL);
-    primitive_set_used(pp, varray);
+    _Optional Primitive * const pp = group_get_primitive(group, p);
+    if (pp != NULL) {
+      primitive_set_used(&*pp, varray);
+    }
   }
 }
