@@ -21,6 +21,7 @@
   CJB: 05-Aug-18: Copied this source file from SF3KtoObj.
   CJB: 21-Apr-20: Fixed bad output in the form of "# 1 vertice".
   CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
+  CJB: 11-Apr-25: Allow null argument to get_colour and get_material.
  */
 
 /* ISO library header files */
@@ -204,7 +205,7 @@ bool output_primitives(FILE * const out, const char * const object_name,
                      int const ngroups,
                      _Optional output_primitives_get_colour *get_colour,
                      _Optional output_primitives_get_material *get_material,
-                     void *arg, const VertexStyle vstyle,
+                     _Optional void *arg, const VertexStyle vstyle,
                      const MeshStyle mstyle)
 {
   assert(out != NULL);

@@ -1,7 +1,7 @@
 # 3dObjLib
 (C) 2018 Christopher Bazley
 
-Release 10 (06 Apr 2025)
+Release 11 (11 Apr 2025)
 
 Preamble
 --------
@@ -257,6 +257,9 @@ Release 9 (19 May 2024)
 Release 10 (06 Apr 2025)
 - This version of the library has been used for dogfooding the _Optional
   qualifier (https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3422.pdf).
+
+Release 11 (11 Apr 2025)
+- Allow null argument to get_colour and get_material.
 
 Contact details
 ---------------

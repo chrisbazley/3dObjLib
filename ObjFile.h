@@ -21,6 +21,7 @@
   CJB: 05-Aug-18: Copied this source file from SF3KtoObj.
   CJB: 11-Dec-20: Removed redundant uses of the 'extern' keyword.
   CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
+  CJB: 11-Apr-25: Allow null argument to get_colour and get_material.
  */
 
 #ifndef OBJFILE_H
@@ -52,10 +53,10 @@ bool output_vertices(
         FILE *out, int vobject, const VertexArray *varray,
         int rot);
 
-typedef int output_primitives_get_colour(const Primitive *pp, void *arg);
+typedef int output_primitives_get_colour(const Primitive *pp, _Optional void *arg);
 
 typedef int output_primitives_get_material(char *buf, size_t buf_size,
-  int colour, void *arg);
+  int colour, _Optional void *arg);
 
 bool output_primitives(
         FILE *out, const char *object_name,
@@ -63,6 +64,6 @@ bool output_primitives(
         Group const *groups, int ngroups,
         _Optional output_primitives_get_colour *get_colour,
         _Optional output_primitives_get_material *get_material,
-        void *arg, VertexStyle vstyle, MeshStyle mstyle);
+        _Optional void *arg, VertexStyle vstyle, MeshStyle mstyle);
 
 #endif /* OBJFILE_H */

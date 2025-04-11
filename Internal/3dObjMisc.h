@@ -19,6 +19,7 @@
 
 /* History:
   CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
+  CJB: 11-Apr-25: Move the USE_OPTIONAL gubbins down the file.
  */
 
 #ifndef M3dObjMisc_h
@@ -28,6 +29,23 @@
 #ifdef FORTIFY
 #include "Fortify.h"
 #endif
+
+#ifdef USE_CBDEBUG
+
+#include "Debug.h"
+
+#else /* USE_CBDEBUG */
+
+#include <stdio.h>
+#include <assert.h>
+
+#ifdef DEBUG_OUTPUT
+#define DEBUGF if (1) printf
+#else
+#define DEBUGF if (0) printf
+#endif /* DEBUG_OUTPUT */
+
+#endif /* USE_CBDEBUG */
 
 #ifdef USE_OPTIONAL
 #include <stdlib.h>
@@ -66,23 +84,6 @@ static inline _Optional void *optional_realloc(_Optional void *p, size_t n)
 #else
 #define _Optional
 #endif
-
-#ifdef USE_CBDEBUG
-
-#include "Debug.h"
-
-#else /* USE_CBDEBUG */
-
-#include <stdio.h>
-#include <assert.h>
-
-#ifdef DEBUG_OUTPUT
-#define DEBUGF if (1) printf
-#else
-#define DEBUGF if (0) printf
-#endif /* DEBUG_OUTPUT */
-
-#endif /* USE_CBDEBUG */
 
 #define NOT_USED(x) ((void)(x))
 
