@@ -1,7 +1,7 @@
 # 3dObjLib
 (C) 2018 Christopher Bazley
 
-Release 11 (11 Apr 2025)
+Release 12 (13 Apr 2025)
 
 Preamble
 --------
@@ -260,6 +260,9 @@ Release 10 (06 Apr 2025)
 
 Release 11 (11 Apr 2025)
 - Allow null argument to get_colour and get_material.
+
+Release 12 (13 Apr 2025)
+- Rename output_primitives_get_(colour|material) types.
 
 Contact details
 ---------------

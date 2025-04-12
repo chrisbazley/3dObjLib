@@ -22,6 +22,7 @@
   CJB: 11-Dec-20: Removed redundant uses of the 'extern' keyword.
   CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
   CJB: 11-Apr-25: Allow null argument to get_colour and get_material.
+  CJB: 13-Apr-25: Rename output_primitives_get_(colour|material) types.
  */
 
 #ifndef OBJFILE_H
@@ -53,17 +54,17 @@ bool output_vertices(
         FILE *out, int vobject, const VertexArray *varray,
         int rot);
 
-typedef int output_primitives_get_colour(const Primitive *pp, _Optional void *arg);
+typedef int OutputPrimitivesGetColourFn(const Primitive *pp, _Optional void *arg);
 
-typedef int output_primitives_get_material(char *buf, size_t buf_size,
+typedef int OutputPrimitivesGetMaterialFn(char *buf, size_t buf_size,
   int colour, _Optional void *arg);
 
 bool output_primitives(
         FILE *out, const char *object_name,
         int vtotal, int vobject, const VertexArray *varray,
         Group const *groups, int ngroups,
-        _Optional output_primitives_get_colour *get_colour,
-        _Optional output_primitives_get_material *get_material,
+        _Optional OutputPrimitivesGetColourFn *get_colour,
+        _Optional OutputPrimitivesGetMaterialFn *get_material,
         _Optional void *arg, VertexStyle vstyle, MeshStyle mstyle);
 
 #endif /* OBJFILE_H */
