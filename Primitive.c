@@ -46,6 +46,10 @@
   CJB: 30-Jul-22: Extra range check in primitive_get_side to stop a wrong
                   warning from GCC's -Warray-bounds.
   CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
+  CJB: 26-May-25: Fixed failure to explicitly cast away _Optional when calling
+                  vector_y in primitive_contains_point.
+                  Don't implicitly discard _Optional from the result of calling
+                  vertex_array_get_coords in primitive_get_skew_side.
  */
 
 /* ISO library header files */
@@ -527,8 +531,7 @@ static bool primitive_contains_point(Primitive * const primitive,
   if (!point) {
     return false;
   }
-  const Coord px = *vector_x(&*point, plane);
-  Coord py = *vector_y(point, plane);
+  const Coord px = *vector_x(&*point, plane), py = *vector_y(&*point, plane);
 
 #if BBOX
   /* If the point is outside the bounding box (even allowing for error)
@@ -1043,7 +1046,7 @@ int primitive_get_skew_side(Primitive * const primitive,
          described by the first two sides of the primitive and each
          subsequent side must be 0. We compute that as the scalar triple
          product. */
-      Coord (*side_old)[3] = vertex_array_get_coords(varray, v);
+      _Optional Coord (*side_old)[3] = vertex_array_get_coords(varray, v);
       if (!side_old) {
         return -1;
       }

@@ -1,7 +1,7 @@
 # 3dObjLib
 (C) 2018 Christopher Bazley
 
-Release 12 (13 Apr 2025)
+Release 13 (26 May 2025)
 
 Preamble
 --------
@@ -263,6 +263,12 @@ Release 11 (11 Apr 2025)
 
 Release 12 (13 Apr 2025)
 - Rename output_primitives_get_(colour|material) types.
+
+Release 13 (26 May 2025)
+- Fixed failure to explicitly cast away _Optional when calling
+  vector_y in primitive_contains_point.
+- Don't implicitly discard _Optional from the result of calling
+  vertex_array_get_coords in primitive_get_skew_side.
 
 Contact details
 ---------------
