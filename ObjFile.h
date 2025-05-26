@@ -23,6 +23,9 @@
   CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
   CJB: 11-Apr-25: Allow null argument to get_colour and get_material.
   CJB: 13-Apr-25: Rename output_primitives_get_(colour|material) types.
+  CJB: 26-May-25: Stop requiring OutputPrimitivesGetMaterialFn and
+                  OutputPrimitivesGetColourFn to handle a pointer to an
+                  _Optional callback context.
  */
 
 #ifndef OBJFILE_H
@@ -54,10 +57,10 @@ bool output_vertices(
         FILE *out, int vobject, const VertexArray *varray,
         int rot);
 
-typedef int OutputPrimitivesGetColourFn(const Primitive *pp, _Optional void *arg);
+typedef int OutputPrimitivesGetColourFn(const Primitive *pp, void *arg);
 
 typedef int OutputPrimitivesGetMaterialFn(char *buf, size_t buf_size,
-  int colour, _Optional void *arg);
+  int colour, void *arg);
 
 bool output_primitives(
         FILE *out, const char *object_name,
@@ -65,6 +68,6 @@ bool output_primitives(
         Group const *groups, int ngroups,
         _Optional OutputPrimitivesGetColourFn *get_colour,
         _Optional OutputPrimitivesGetMaterialFn *get_material,
-        _Optional void *arg, VertexStyle vstyle, MeshStyle mstyle);
+        void *arg, VertexStyle vstyle, MeshStyle mstyle);
 
 #endif /* OBJFILE_H */

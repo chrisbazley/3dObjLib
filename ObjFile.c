@@ -23,6 +23,9 @@
   CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
   CJB: 11-Apr-25: Allow null argument to get_colour and get_material.
   CJB: 13-Apr-25: Rename output_primitives_get_(colour|material) types.
+  CJB: 26-May-25: Stop requiring OutputPrimitivesGetMaterialFn and
+                  OutputPrimitivesGetColourFn to handle a pointer to an
+                  _Optional callback context.
  */
 
 /* ISO library header files */
@@ -206,7 +209,7 @@ bool output_primitives(FILE * const out, const char * const object_name,
                      int const ngroups,
                      _Optional OutputPrimitivesGetColourFn *get_colour,
                      _Optional OutputPrimitivesGetMaterialFn *get_material,
-                     _Optional void *arg, const VertexStyle vstyle,
+                     void *arg, const VertexStyle vstyle,
                      const MeshStyle mstyle)
 {
   assert(out != NULL);

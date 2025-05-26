@@ -269,6 +269,9 @@ Release 13 (26 May 2025)
   vector_y in primitive_contains_point.
 - Don't implicitly discard _Optional from the result of calling
   vertex_array_get_coords in primitive_get_skew_side.
+- Stop requiring OutputPrimitivesGetMaterialFn and
+  OutputPrimitivesGetColourFn to handle a pointer to an
+  _Optional callback context.
 
 Contact details
 ---------------
