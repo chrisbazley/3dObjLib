@@ -26,7 +26,10 @@ set_target_properties(3dObj PROPERTIES
 
 target_include_directories(3dObj PUBLIC .)
 target_compile_definitions(3dObj PRIVATE $<$<CONFIG:Debug>:DEBUG_OUTPUT>)
-target_link_libraries(3dObj PRIVATE m)
+
+if(UNIX)
+    target_link_libraries(3dObj PRIVATE m)
+endif()
 
 install(TARGETS 3dObj
     ARCHIVE DESTINATION lib
