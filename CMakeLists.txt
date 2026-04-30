@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.10)
 project(3dObjLib C)
 
 set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 if(MSVC)
     # MSVC equivalent of -Wall -Wextra is /W4
@@ -24,7 +22,15 @@ set_target_properties(3dObj PROPERTIES
 )
 
 target_include_directories(3dObj PUBLIC .)
-target_compile_definitions(3dObj PRIVATE $<$<CONFIG:Debug>:DEBUG_OUTPUT>)
+
+target_compile_definitions(3dObj PRIVATE
+    $<$<CONFIG:Debug>:DEBUG_OUTPUT>
+    $<$<CONFIG:Release>:NDEBUG>
+)
+
+target_compile_options(3dObj PRIVATE
+    $<$<CONFIG:Release>:-O3>
+)
 
 if(UNIX)
     target_link_libraries(3dObj PRIVATE m)
