@@ -35,8 +35,9 @@ endif()
 
 file(GLOB SOURCES "*.c")
 file(GLOB PUBLIC_HEADERS "*.h")
+file(GLOB HEADER_FILES CONFIGURE_DEPENDS "Internal/*.h")
 
-add_library(3dObj STATIC ${SOURCES} ${PUBLIC_HEADERS})
+add_library(3dObj STATIC ${SOURCES} ${PUBLIC_HEADERS} ${HEADER_FILES})
 
 set_target_properties(3dObj PROPERTIES
     PUBLIC_HEADER "${PUBLIC_HEADERS}"
