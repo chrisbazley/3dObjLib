@@ -25,11 +25,6 @@ target_include_directories(3dObj PUBLIC .)
 
 target_compile_definitions(3dObj PRIVATE
     $<$<CONFIG:Debug>:DEBUG_OUTPUT>
-    $<$<CONFIG:Release>:NDEBUG>
-)
-
-target_compile_options(3dObj PRIVATE
-    $<$<CONFIG:Release>:-O3>
 )
 
 if(UNIX)
