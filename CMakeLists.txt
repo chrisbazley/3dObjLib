@@ -50,8 +50,9 @@ target_compile_definitions(3dObj PRIVATE
     $<$<CONFIG:Debug>:DEBUG_OUTPUT>
 )
 
+# Public because a public header uses math.h
 if(UNIX)
-    target_link_libraries(3dObj PRIVATE m)
+    target_link_libraries(3dObj PUBLIC m)
 endif()
 
 install(TARGETS 3dObj
