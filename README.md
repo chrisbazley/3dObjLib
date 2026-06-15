@@ -112,14 +112,18 @@ linker. Otherwise, you will get build-time errors.
 
 Rebuilding the library
 ----------------------
-  You should ensure that the standard C library and CBDebugLib (by the same
-author as 3dObjLib) are on your header include path (C$Path if using the
-supplied make files on RISC OS), otherwise the compiler won't be able to find
-the required header files. The dependency on CBDebugLib isn't very strong: it
-can be eliminated by modifying the make file so that the macro USE_CBDEBUG is
-no longer predefined.
 
-  Three make files are supplied:
+  If you have CMake, a build system generator, then you can use it to
+build this library with minimal manual intervention.
+
+For example, use the following commands to build on Linux:
+```
+  cmake -G 'Unix Makefiles' -S . -B build
+  cd build
+  make
+```
+
+  Three make files are also supplied:
 
 - 'Makefile' is intended for use with GNU Make and the GNU C Compiler on Linux.
 - 'NMakefile' is intended for use with Acorn Make Utility (AMU) and the
@@ -166,6 +170,13 @@ built (e.g. foo.o instead of o.foo).
 files with .c and .h suffixes into subdirectories named 'c' and 'h' and
 remove those suffixes from their names. You probably also need to create
 'o', 'd' and 'debug' subdirectories for compiler output.
+
+  You should ensure that the standard C library and CBDebugLib (by the same
+author as 3dObjLib) are on your header include path (C$Path if using the
+supplied make files on RISC OS), otherwise the compiler won't be able to find
+the required header files. The dependency on CBDebugLib isn't very strong: it
+can be eliminated by modifying the make file so that the macro USE_CBDEBUG is
+no longer predefined.
 
 Licence and disclaimer
 ----------------------
