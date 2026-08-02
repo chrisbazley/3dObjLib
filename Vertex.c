@@ -31,6 +31,8 @@
   CJB: 30-Aug-18: Added a function to mark all vertices as used.
   CJB: 09-Jan-21: Initialize struct using compound literal assignment to
                   guard against leaving members uninitialized.
+  CJB: 02-Aug-26: Suppress a silly warning about truncation of ptrdiff_t
+                  to int in vertex_array_find_duplicates.
  */
 
 /* ISO library header files */
@@ -313,7 +315,10 @@ int vertex_array_find_duplicates(VertexArray * const varray,
            returns the original vertex's ID (whatever that turns out to be
            after renumbering all of the vertices). */
         assert(sorted[last] >= varray->vertices);
-        sorted[v]->dup = sorted[last] - varray->vertices;
+        ptrdiff_t const pd = sorted[last] - varray->vertices;
+        assert(pd >= 0);
+        assert(pd <= INT_MAX);
+        sorted[v]->dup = (int)pd;
 
         /* To ensure that the original vertex is output, it must be marked if
            any of the vertices linked to it are marked. */
