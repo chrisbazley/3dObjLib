@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(3dObjLib C)
+include(FetchContent)
 
 if(USE_OPTIONAL)
     add_compile_definitions(USE_OPTIONAL)
@@ -75,6 +76,14 @@ set_target_properties(3dObj PROPERTIES
     PUBLIC_HEADER "${PUBLIC_HEADERS}"
     DEBUG_POSTFIX "dbg"
 )
+
+if(USE_OPTIONAL)
+    FetchContent_Declare(CBUtil GIT_REPOSITORY https://github.com/chrisbazley/CBUtilLib.git GIT_TAG main)
+
+    FetchContent_MakeAvailable(CBUtil)
+
+    target_link_libraries(3dObj PRIVATE CBUtil)
+endif()
 
 target_include_directories(3dObj PUBLIC .)
 
