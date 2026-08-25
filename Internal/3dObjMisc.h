@@ -28,7 +28,7 @@
 
 /* Fortified memory allocation shell */
 #ifdef FORTIFY
-#include "Fortify.h"
+#include "fortify.h"
 #endif
 
 #ifdef USE_CBDEBUG
