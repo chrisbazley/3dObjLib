@@ -50,9 +50,6 @@
                   vector_y in primitive_contains_point.
                   Don't implicitly discard _Optional from the result of calling
                   vertex_array_get_coords in primitive_get_skew_side.
-  CJB: 28-Aug-26: Substitute Newell's method for calculating the normal vector
-                  of a polygon, because the previous method (using only the
-                  first three vertices) did not work for concave polygons.
  */
 
 /* ISO library header files */
@@ -170,27 +167,22 @@ static bool primitive_make_normal(Primitive * const primitive,
     /* Compute the polygon's normal vector, which is orthogonal to it.
        This is useful for determining its coplanarity with respect to other
        polygons, among other uses. */
-    Coord newell[3] = {0, 0, 0};
+    Coord side_one[3], side_two[3], cross_prod[3];
+    Coord (*coords[3])[3];
 
-    for (int side = 0; side < nsides; ++side) {
-      const int next = (side + 1) % nsides;
-
-      _Optional Coord (*const a)[3] = vertex_array_get_coords(
-                                          varray,
-                                          primitive_get_side(primitive, side)),
-                      (*const b)[3] = vertex_array_get_coords(
-                                          varray,
-                                          primitive_get_side(primitive, next));
-
-      if (a == NULL || b == NULL)
+    for (int side = 0; side < 3; ++side) {
+      const int v = primitive_get_side(primitive, side);
+      _Optional Coord (*c)[3] = vertex_array_get_coords(varray, v);
+      if (!c) {
         return false;
-
-      newell[0] += ((*a)[1] - (*b)[1]) * ((*a)[2] + (*b)[2]);
-      newell[1] += ((*a)[2] - (*b)[2]) * ((*a)[0] + (*b)[0]);
-      newell[2] += ((*a)[0] - (*b)[0]) * ((*a)[1] + (*b)[1]);
+      }
+      coords[side] = &*c;
     }
 
-    has_normal = vector_norm(&newell, norm);
+    vector_sub(coords[1], coords[0], &side_one);
+    vector_sub(coords[2], coords[1], &side_two);
+    vector_cross(&side_one, &side_two, &cross_prod);
+    has_normal = vector_norm(&cross_prod, norm);
   }
 
   if (has_normal) {
