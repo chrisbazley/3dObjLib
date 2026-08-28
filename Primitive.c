@@ -53,8 +53,7 @@
   CJB: 28-Aug-26: Preserve the three vertices used to calculate a normal when
                   reversing a primitive in primitive_set_normal. Ensure that
                   recalculation of the normal is not conditional on assertions
-                  being enabled. Preserve the normal of a primitive in both
-                  pieces when splitting it.
+                  being enabled.
  */
 
 /* ISO library header files */
@@ -230,18 +229,6 @@ static bool primitive_ensure_normal(Primitive * const primitive,
     }
   }
   return primitive->has_normal;
-}
-
-static void primitive_set_cached_normal(Primitive * const primitive,
-                                        Coord (* const normal)[3])
-{
-  assert(primitive != NULL);
-  assert(normal != NULL);
-
-  for (size_t n = 0; n < ARRAY_SIZE(primitive->normal); ++n) {
-    primitive->normal[n] = (*normal)[n];
-  }
-  primitive->has_normal = true;
 }
 
 bool primitive_get_normal(Primitive * const primitive,
@@ -949,16 +936,6 @@ bool primitive_split(Primitive * const primitive, const int a, const int b,
   if (state == SPLIT_COMPLETE) {
     *split = true;
 
-    Coord normal[3];
-    bool const has_normal = primitive_get_normal(primitive, varray, &normal);
-    if (has_normal) {
-      /* Both pieces retain the plane and winding of the input primitive.
-         In particular, don't derive their orientation from different sets
-         of three vertices if the input primitive is concave. */
-      primitive_set_cached_normal(&tmp, &normal);
-      primitive_set_cached_normal(out, &normal);
-    }
-
     assert(primitive_get_num_sides(&tmp) > 2);
     assert(primitive_coplanar(&tmp, primitive, varray));
     assert(primitive_get_num_sides(out) > 2);
@@ -977,15 +954,18 @@ bool primitive_split(Primitive * const primitive, const int a, const int b,
         return false;
       }
     }
-    if (has_normal) {
-      primitive_set_cached_normal(primitive, &normal);
-    }
 
     /* Copy other data from the input polygon to the new polygon */
     DEBUGF("Finishing new primitive %p\n", (void *)out);
     primitive_set_colour(out, primitive_get_colour(primitive));
     primitive_set_id(out, primitive_get_id(primitive));
 
+    if (primitive->has_normal) {
+      for (size_t n = 0; n < ARRAY_SIZE(out->normal); ++n) {
+        out->normal[n] = primitive->normal[n];
+      }
+      out->has_normal = true;
+    }
   } else {
     *split = false;
   }
