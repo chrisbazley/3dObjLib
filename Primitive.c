@@ -50,6 +50,10 @@
                   vector_y in primitive_contains_point.
                   Don't implicitly discard _Optional from the result of calling
                   vertex_array_get_coords in primitive_get_skew_side.
+  CJB: 28-Aug-26: Preserve the three vertices used to calculate a normal when
+                  reversing a primitive in primitive_set_normal. Ensure that
+                  recalculation of the normal is not conditional on assertions
+                  being enabled.
  */
 
 /* ISO library header files */
@@ -150,6 +154,27 @@ void primitive_reverse_sides(Primitive * const primitive)
   primitive->has_normal = false;
 }
 
+static void primitive_reverse_sides_for_normal(Primitive * const primitive)
+{
+  assert(primitive != NULL);
+  assert(primitive->nsides >= 3);
+  assert((size_t)primitive->nsides <= ARRAY_SIZE(primitive->sides));
+
+  int sides[ARRAY_SIZE(primitive->sides)];
+  for (int dst = 0; dst < primitive->nsides; ++dst) {
+    int src = 2 - dst;
+    if (src < 0) {
+      src += primitive->nsides;
+    }
+    sides[dst] = primitive->sides[src];
+  }
+
+  for (int side = 0; side < primitive->nsides; ++side) {
+    primitive->sides[side] = sides[side];
+  }
+  primitive->has_normal = false;
+}
+
 static bool primitive_make_normal(Primitive * const primitive,
                                   const VertexArray * const varray,
                                   Coord (*const norm)[3])
@@ -231,9 +256,10 @@ bool primitive_set_normal(Primitive * const primitive,
 
   if (primitive_ensure_normal(primitive, varray)) {
     if (!vector_equal(norm, &primitive->normal)) {
-      primitive_reverse_sides(primitive);
-      assert(primitive_ensure_normal(primitive, varray));
-      assert(vector_equal(norm, &primitive->normal));
+      primitive_reverse_sides_for_normal(primitive);
+      if (primitive_ensure_normal(primitive, varray)) {
+        assert(vector_equal(norm, &primitive->normal));
+      }
       reversed = true;
     }
   }
