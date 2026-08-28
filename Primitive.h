@@ -25,6 +25,7 @@
                   Added a macro to allow bounding box optimisations to be
                   disabled.
   CJB: 11-Dec-20: Removed redundant uses of the 'extern' keyword.
+  CJB: 28-Aug-26: Added primitive_is_convex.
  */
 
 #ifndef PRIMITIVE_H
@@ -90,6 +91,9 @@ bool primitive_coplanar(Primitive *p, Primitive *q,
 
 bool primitive_find_plane(Primitive *primitive,
                           const VertexArray *varray, Plane *plane);
+
+bool primitive_is_convex(const Primitive *primitive,
+                         const VertexArray *varray, Plane plane);
 
 bool primitive_contains(Primitive *q, Primitive *p,
                         const VertexArray *varray, Plane plane);

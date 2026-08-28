@@ -24,6 +24,8 @@
                   constraint) and primitive_clip.
                   Failure of primitive_clip is now reported in verbose mode.
   CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
+  CJB: 28-Aug-26: Don't pass concave or self-intersecting primitives to the
+                  clipping algorithm, which assumes convex polygons.
  */
 
 /* ISO library header files */
@@ -71,6 +73,14 @@ static bool clip_group_vs_group(VertexArray * const varray,
     return true;
   }
 
+  if (!primitive_is_convex(&*backp, varray, plane)) {
+    if (verbose) {
+      printf("Not clipping non-convex polygon %d in group %d\n",
+             primitive_get_id(&*backp), bg);
+    }
+    return true;
+  }
+
   Group * const front_group = groups + fg;
 
   for (; front < group_get_num_primitives(front_group); ++front) {
@@ -86,6 +96,14 @@ static bool clip_group_vs_group(VertexArray * const varray,
     }
 
     if (!primitive_coplanar(&*frontp, &*backp, varray)) {
+      continue;
+    }
+
+    if (!primitive_is_convex(&*frontp, varray, plane)) {
+      if (verbose) {
+        printf("Not clipping against non-convex polygon %d in group %d\n",
+               primitive_get_id(&*frontp), fg);
+      }
       continue;
     }
 
