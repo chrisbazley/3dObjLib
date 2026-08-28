@@ -51,9 +51,9 @@
                   Don't implicitly discard _Optional from the result of calling
                   vertex_array_get_coords in primitive_get_skew_side.
   CJB: 28-Aug-26: Preserve the three vertices used to calculate a normal when
-                  reversing a primitive in primitive_set_normal. Don't assert
-                  that pieces split from an unsupported concave primitive have
-                  the same normal as their parent.
+                  reversing a primitive in primitive_set_normal. Ensure that
+                  recalculation of the normal is not conditional on assertions
+                  being enabled.
  */
 
 /* ISO library header files */
@@ -256,10 +256,10 @@ bool primitive_set_normal(Primitive * const primitive,
 
   if (primitive_ensure_normal(primitive, varray)) {
     if (!vector_equal(norm, &primitive->normal)) {
-      /* Use the same three vertices in reverse order so that a primitive
-         whose normal is defined by its first three vertices gets the
-         requested normal even if it is concave. */
       primitive_reverse_sides_for_normal(primitive);
+      if (primitive_ensure_normal(primitive, varray)) {
+        assert(vector_equal(norm, &primitive->normal));
+      }
       reversed = true;
     }
   }
@@ -937,12 +937,9 @@ bool primitive_split(Primitive * const primitive, const int a, const int b,
     *split = true;
 
     assert(primitive_get_num_sides(&tmp) > 2);
+    assert(primitive_coplanar(&tmp, primitive, varray));
     assert(primitive_get_num_sides(out) > 2);
-
-    /* The clipping algorithm assumes convex primitives. In particular, a
-       piece split from a concave primitive may have a different normal when
-       normals are calculated from the first three vertices. Do not reject an
-       otherwise complete split on that basis. */
+    assert(primitive_coplanar(out, primitive, varray));
 
     primitive_delete_all(primitive);
 
