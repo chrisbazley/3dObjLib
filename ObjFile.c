@@ -28,6 +28,7 @@
                   _Optional callback context.
   CJB: 29-Aug-26: Allow output of an object containing no used vertices or
                   primitives.
+  CJB: 29-Aug-26: Use a canonical representation for zero coordinates.
  */
 
 /* ISO library header files */
@@ -96,7 +97,8 @@ bool output_vertices(FILE * const out, const int vobject,
       return false;
     }
     for (size_t dim = 0; dim < ARRAY_SIZE(*coords); ++dim) {
-      if (fprintf(out, " %f", (*coords)[dim]) < 0) {
+      const Coord coord = (*coords)[dim];
+      if (fprintf(out, " %f", coord == 0 ? 0.0 : coord) < 0) {
         return false;
       }
     }

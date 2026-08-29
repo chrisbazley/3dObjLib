@@ -29,6 +29,12 @@ within a specified set of groups of primitives. The caller must specify a
 rendering order for the groups. Within each group, primitives are assumed to
 be rendered in the order they were added to the group.
 
+  The clipping algorithm requires convex polygons. Polygons that are
+concave, self-intersecting or degenerate are therefore neither clipped nor
+used to clip other polygons. This avoids applying splitting and containment
+operations to polygons for which the concept of an interior is ambiguous.
+Such polygons remain available for output unchanged.
+
   The rearmost of two overlapping polygons is split by dividing it along the
 line obtained by extending one edge of the front polygon to infinity in both
 directions. This process is repeated until no two edges intersect. Any
@@ -91,6 +97,16 @@ object definition then it can be more useful to count backwards from the
 most recent vertex definition, which is assigned index -1. The
 output_primitives function can optionally use this output mode, which allows
 object models to be separated, extracted or rearranged later.
+
+  If different input vertices have identical coordinates then duplicate
+removal retains the one with the lowest original vertex number. This makes
+the ordering of output vertices, and the corresponding face indices,
+independent of the C library's implementation of qsort.
+
+Output of vertices
+------------------
+  Zero coordinates have the canonical representation "0.000000" in OBJ
+output; the equivalent signed representation "-0.000000" is not emitted.
 
 Fortified memory allocation
 ---------------------------
@@ -283,6 +299,16 @@ Release 13 (26 May 2025)
 - Stop requiring OutputPrimitivesGetMaterialFn and
   OutputPrimitivesGetColourFn to handle a pointer to an
   _Optional callback context.
+
+Release 14 (DD MMM YYYY)
+- Do not attempt to clip concave, self-intersecting or degenerate polygons,
+  or use them to clip other polygons. The clipping algorithm assumes convex
+  polygons.
+- Give vertices with identical coordinates a deterministic order instead of
+  relying on the C library's implementation of qsort.
+- Use a canonical positive representation for zero coordinates in OBJ
+  output, irrespective of the sign produced by floating-point arithmetic.
+- Allow an object containing no used vertices or primitives to be written.
 
 Contact details
 ---------------
