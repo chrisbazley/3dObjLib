@@ -56,6 +56,7 @@
   CJB: 29-Aug-26: Simplify primitive_is_convex. Don't require reversing a
                   non-convex primitive to reverse the normal calculated from
                   its first three vertices.
+                  Added primitive_overlaps_line.
  */
 
 /* ISO library header files */
@@ -785,6 +786,36 @@ bool primitive_contains(Primitive * const q, Primitive * const p,
   DEBUGF("All %d sides of primitive %p are contained by primitive %p\n",
           nsides_p, (void *)p, (void *)q);
   return true;
+}
+
+bool primitive_overlaps_line(Primitive * const polygon,
+                             Primitive * const line,
+                             const VertexArray * const varray,
+                             const Plane plane)
+{
+  assert(polygon != NULL);
+  assert(line != NULL);
+  assert(varray != NULL);
+
+  if (primitive_get_num_sides(polygon) < 3 ||
+      primitive_get_num_sides(line) != 2) {
+    DEBUGF("A polygon and line are required to test overlap\n");
+    return false;
+  }
+
+  if (!primitive_ensure_bbox(polygon, varray)) {
+    DEBUGF("Can't test overlap using an incomplete polygon\n");
+    return false;
+  }
+
+  const int a = primitive_get_side(line, 0);
+  const int b = primitive_get_side(line, 1);
+
+  /* A line overlaps a polygon if it is contained by the polygon or if the
+     part between its endpoints crosses a polygon edge. Merely touching the
+     polygon at one endpoint is not an overlap. */
+  return primitive_contains(polygon, line, varray, plane) ||
+         primitive_intersect(polygon, a, b, varray, plane);
 }
 
 bool primitive_equal(const Primitive * const q, const Primitive * const p)
