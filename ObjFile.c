@@ -26,6 +26,8 @@
   CJB: 26-May-25: Stop requiring OutputPrimitivesGetMaterialFn and
                   OutputPrimitivesGetColourFn to handle a pointer to an
                   _Optional callback context.
+  CJB: 29-Aug-26: Allow output of an object containing no used vertices or
+                  primitives.
  */
 
 /* ISO library header files */
@@ -66,7 +68,7 @@ bool output_vertices(FILE * const out, const int vobject,
 {
   assert(out != NULL);
   assert(!ferror(out));
-  assert(vobject > 0);
+  assert(vobject >= 0);
 
   if (fprintf(out, "\n# %d vertices\n", vobject) < 0) {
     return false;
@@ -216,7 +218,7 @@ bool output_primitives(FILE * const out, const char * const object_name,
   assert(!ferror(out));
   assert(groups != NULL);
   assert(vtotal >= 0);
-  assert(vobject > 0);
+  assert(vobject >= 0);
 
   int last_colour = INT_MAX;
   for (int g = 0; g < ngroups; ++g) {
