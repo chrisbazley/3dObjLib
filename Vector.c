@@ -23,6 +23,8 @@
                   Rewrote vector_xy_less_than to use coord_less_than.
                   Added a companion function, vector_xy_greater_or_equal.
   CJB: 17-Nov-18: vector_x/y/z are no longer inline functions.
+  CJB: 29-Aug-26: Use unsigned char instead of size_t in vector_find_plane
+                  to avoid an implicit narrowing conversion.
  */
 
 /* ISO library header files */
@@ -393,10 +395,10 @@ void vector_find_plane(Coord (* const vector)[3], Plane * const plane)
   assert(plane != NULL);
 
   /* Find the dimension with the biggest size */
-  size_t bd = 0;
+  unsigned char bd = 0;
   Coord biggest = -COORD_INF;
-  for (size_t dim = 0; dim < ARRAY_SIZE(*vector); ++dim) {
-    DEBUGF("Range in dimension %zu is %"PCOORD"\n",
+  for (unsigned char dim = 0; dim < ARRAY_SIZE(*vector); ++dim) {
+    DEBUGF("Range in dimension %d is %"PCOORD"\n",
            dim, (*vector)[dim]);
     const Coord mag = coord_abs((*vector)[dim]);
     if (mag > biggest) {
@@ -405,7 +407,7 @@ void vector_find_plane(Coord (* const vector)[3], Plane * const plane)
     }
   }
 
-  DEBUGF("Biggest range %"PCOORD" is dimension %zu\n", biggest, bd);
+  DEBUGF("Biggest range %"PCOORD" is dimension %d\n", biggest, bd);
   plane->x = (0 == bd ? 2 : 0);
   plane->y = (1 == bd ? 2 : 1);
   /* We'll ignore the z dimension when projecting the plane into two
