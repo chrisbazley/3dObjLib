@@ -53,6 +53,9 @@
   CJB: 28-Aug-26: Preserve the three vertices used to calculate a normal when
                   reversing a primitive in primitive_set_normal. Added
                   primitive_is_convex.
+  CJB: 29-Aug-26: Simplify primitive_is_convex. Don't require reversing a
+                  non-convex primitive to reverse the normal calculated from
+                  its first three vertices.
  */
 
 /* ISO library header files */
@@ -153,27 +156,6 @@ void primitive_reverse_sides(Primitive * const primitive)
   primitive->has_normal = false;
 }
 
-static void primitive_reverse_sides_for_normal(Primitive * const primitive)
-{
-  assert(primitive != NULL);
-  assert(primitive->nsides >= 3);
-  assert((size_t)primitive->nsides <= ARRAY_SIZE(primitive->sides));
-
-  int sides[ARRAY_SIZE(primitive->sides)];
-  for (int dst = 0; dst < primitive->nsides; ++dst) {
-    int src = 2 - dst;
-    if (src < 0) {
-      src += primitive->nsides;
-    }
-    sides[dst] = primitive->sides[src];
-  }
-
-  for (int side = 0; side < primitive->nsides; ++side) {
-    primitive->sides[side] = sides[side];
-  }
-  primitive->has_normal = false;
-}
-
 static bool primitive_make_normal(Primitive * const primitive,
                                   const VertexArray * const varray,
                                   Coord (*const norm)[3])
@@ -255,11 +237,15 @@ bool primitive_set_normal(Primitive * const primitive,
 
   if (primitive_ensure_normal(primitive, varray)) {
     if (!vector_equal(norm, &primitive->normal)) {
-      /* Use the same three vertices in reverse order so that a primitive
-         whose normal is defined by its first three vertices gets the
-         requested normal even if it is concave. Leave the cached normal
-         invalid. */
-      primitive_reverse_sides_for_normal(primitive);
+      primitive_reverse_sides(primitive);
+#ifndef NDEBUG
+      assert(primitive_ensure_normal(primitive, varray));
+      if (!vector_equal(norm, &primitive->normal)) {
+        Plane plane;
+        assert(primitive_find_plane(primitive, varray, &plane));
+        assert(!primitive_is_convex(primitive, varray, plane));
+      }
+#endif
       reversed = true;
     }
   }
@@ -390,59 +376,6 @@ bool primitive_find_plane(Primitive * const primitive,
   return has_normal;
 }
 
-static int cross_sign(const Coord cross)
-{
-  if (coord_equal(cross, 0)) {
-    return 0;
-  }
-  return cross < 0 ? -1 : 1;
-}
-
-static Coord projected_cross(Coord (* const a)[3], Coord (* const b)[3],
-                             Coord (* const c)[3], const Plane plane)
-{
-  const Coord abx = *vector_x(b, plane) - *vector_x(a, plane);
-  const Coord aby = *vector_y(b, plane) - *vector_y(a, plane);
-  const Coord bcx = *vector_x(c, plane) - *vector_x(b, plane);
-  const Coord bcy = *vector_y(c, plane) - *vector_y(b, plane);
-  return abx * bcy - aby * bcx;
-}
-
-static bool between(const Coord a, const Coord b, const Coord value)
-{
-  return !coord_less_than(value, LOWEST(a, b)) &&
-         !coord_less_than(HIGHEST(a, b), value);
-}
-
-static bool point_on_segment(Coord (* const a)[3], Coord (* const b)[3],
-                             Coord (* const point)[3], const Plane plane)
-{
-  return cross_sign(projected_cross(a, b, point, plane)) == 0 &&
-         between(*vector_x(a, plane), *vector_x(b, plane),
-                 *vector_x(point, plane)) &&
-         between(*vector_y(a, plane), *vector_y(b, plane),
-                 *vector_y(point, plane));
-}
-
-static bool edges_cross(Coord (* const a)[3], Coord (* const b)[3],
-                        Coord (* const c)[3], Coord (* const d)[3],
-                        const Plane plane)
-{
-  const int abc = cross_sign(projected_cross(a, b, c, plane));
-  const int abd = cross_sign(projected_cross(a, b, d, plane));
-  const int cda = cross_sign(projected_cross(c, d, a, plane));
-  const int cdb = cross_sign(projected_cross(c, d, b, plane));
-
-  if (abc != 0 && abd != 0 && cda != 0 && cdb != 0) {
-    return abc != abd && cda != cdb;
-  }
-
-  return (abc == 0 && point_on_segment(a, b, c, plane)) ||
-         (abd == 0 && point_on_segment(a, b, d, plane)) ||
-         (cda == 0 && point_on_segment(c, d, a, plane)) ||
-         (cdb == 0 && point_on_segment(c, d, b, plane));
-}
-
 bool primitive_is_convex(const Primitive * const primitive,
                          const VertexArray * const varray,
                          const Plane plane)
@@ -455,58 +388,64 @@ bool primitive_is_convex(const Primitive * const primitive,
     return false;
   }
 
-  int turn = 0;
+  int winding = 0;
   for (int side = 0; side < nsides; ++side) {
-    _Optional Coord (* const a)[3] = vertex_array_get_coords(
-        varray, primitive_get_side(primitive, side));
-    _Optional Coord (* const b)[3] = vertex_array_get_coords(
-        varray, primitive_get_side(primitive, (side + 1) % nsides));
-    _Optional Coord (* const c)[3] = vertex_array_get_coords(
-        varray, primitive_get_side(primitive, (side + 2) % nsides));
-    if (!a || !b || !c) {
+    const int a = primitive_get_side(primitive, side);
+    const int b = primitive_get_side(primitive, (side + 1) % nsides);
+    _Optional Coord (* const a_coords)[3] =
+        vertex_array_get_coords(varray, a);
+    _Optional Coord (* const b_coords)[3] =
+        vertex_array_get_coords(varray, b);
+    if (!a_coords || !b_coords) {
       return false;
     }
 
-    const int this_turn = cross_sign(
-        projected_cross(&*a, &*b, &*c, plane));
-    if (this_turn != 0) {
-      if (turn != 0 && this_turn != turn) {
-        return false;
-      }
-      turn = this_turn;
-    }
-  }
-
-  if (turn == 0) {
-    return false;
-  }
-
-  /* Consistent turns are insufficient on their own: a self-intersecting
-     polygon has no unambiguous interior for the clipping operations. */
-  for (int first = 0; first < nsides; ++first) {
-    const int first_next = (first + 1) % nsides;
-    _Optional Coord (* const a)[3] = vertex_array_get_coords(
-        varray, primitive_get_side(primitive, first));
-    _Optional Coord (* const b)[3] = vertex_array_get_coords(
-        varray, primitive_get_side(primitive, first_next));
-    if (!a || !b) {
+    Coord edge[3];
+    vector_sub(&*b_coords, &*a_coords, &edge);
+    *vector_z(&edge, plane) = 0;
+    const Coord edge_length = vector_mag(&edge);
+    if (!isfinite(edge_length) || coord_equal(edge_length, 0)) {
       return false;
     }
 
-    for (int second = first + 1; second < nsides; ++second) {
-      const int second_next = (second + 1) % nsides;
-      if (second == first_next || second_next == first) {
+    Coord edge_unit[3];
+    if (!vector_norm(&edge, &edge_unit)) {
+      return false;
+    }
+
+    int edge_side = 0;
+    for (int vertex = 0; vertex < nsides; ++vertex) {
+      if (vertex == side || vertex == (side + 1) % nsides) {
         continue;
       }
 
-      _Optional Coord (* const c)[3] = vertex_array_get_coords(
-          varray, primitive_get_side(primitive, second));
-      _Optional Coord (* const d)[3] = vertex_array_get_coords(
-          varray, primitive_get_side(primitive, second_next));
-      if (!c || !d || edges_cross(&*a, &*b, &*c, &*d, plane)) {
+      _Optional Coord (* const coords)[3] = vertex_array_get_coords(
+          varray, primitive_get_side(primitive, vertex));
+      if (!coords) {
         return false;
       }
+
+      Coord offset[3], cross[3];
+      vector_sub(&*coords, &*a_coords, &offset);
+      *vector_z(&offset, plane) = 0;
+      vector_cross(&edge_unit, &offset, &cross);
+      const Coord distance = *vector_z(&cross, plane);
+      if (!isfinite(distance)) {
+        return false;
+      }
+      if (!coord_equal(distance, 0)) {
+        const int this_side = distance < 0 ? -1 : 1;
+        if (edge_side != 0 && this_side != edge_side) {
+          return false;
+        }
+        edge_side = this_side;
+      }
     }
+
+    if (edge_side == 0 || (winding != 0 && edge_side != winding)) {
+      return false;
+    }
+    winding = edge_side;
   }
   return true;
 }
