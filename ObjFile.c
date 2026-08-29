@@ -98,7 +98,7 @@ bool output_vertices(FILE * const out, const int vobject,
     }
     for (size_t dim = 0; dim < ARRAY_SIZE(*coords); ++dim) {
       const Coord coord = (*coords)[dim];
-      if (fprintf(out, " %f", coord == 0 ? 0.0 : coord) < 0) {
+      if (fprintf(out, " %f", coord_equal(coord, 0) ? 0.0 : coord) < 0) {
         return false;
       }
     }

@@ -105,8 +105,9 @@ independent of the C library's implementation of qsort.
 
 Output of vertices
 ------------------
-  Zero coordinates have the canonical representation "0.000000" in OBJ
-output; the equivalent signed representation "-0.000000" is not emitted.
+  Coordinates equal to zero within the library's tolerance have the canonical
+representation "0.000000" in OBJ output; the equivalent signed representation
+"-0.000000" is not emitted.
 
 Fortified memory allocation
 ---------------------------
