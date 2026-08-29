@@ -33,6 +33,8 @@
                   guard against leaving members uninitialized.
   CJB: 02-Aug-26: Suppress a silly warning about truncation of ptrdiff_t
                   to int in vertex_array_find_duplicates.
+  CJB: 29-Aug-26: Compare vertex IDs to give equal-coordinate vertices a
+                  deterministic order.
  */
 
 /* ISO library header files */
@@ -247,6 +249,12 @@ static int compare_vertices(const void *a, const void *b)
         return +1;
       }
     }
+
+    /* qsort is not required to preserve the order of equivalent elements.
+       Use the original vertex IDs to ensure that duplicate detection always
+       retains the same representative vertex. */
+    assert(v1->id != v2->id);
+    return v1->id < v2->id ? -1 : +1;
   }
   DEBUGF("{%"PCOORD",%"PCOORD",%"PCOORD"} == "
          "{%"PCOORD",%"PCOORD",%"PCOORD"}\n",
