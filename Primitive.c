@@ -59,6 +59,7 @@
   CJB: 30-Aug-26: Made primitive_contains_point public and changed it to
                   accept coordinates which need not belong to a vertex.
                   Made the function ensure its own bounding box.
+  CJB: 30-Aug-26: Preserve a cached normal when splitting a primitive.
  */
 
 /* ISO library header files */
@@ -1017,6 +1018,15 @@ bool primitive_split(Primitive * const primitive, const int a, const int b,
     assert(primitive_get_num_sides(out) > 2);
     assert(primitive_coplanar(out, primitive, varray));
 
+    /* Preserve the cached normal before rebuilding the input primitive,
+       because primitive_delete_all and primitive_add_side invalidate it. */
+    if (primitive->has_normal) {
+      for (size_t n = 0; n < ARRAY_SIZE(out->normal); ++n) {
+        out->normal[n] = primitive->normal[n];
+      }
+      out->has_normal = true;
+    }
+
     primitive_delete_all(primitive);
 
     /* Copy sides data from the temporary polygon to the input polygon. */
@@ -1035,13 +1045,6 @@ bool primitive_split(Primitive * const primitive, const int a, const int b,
     DEBUGF("Finishing new primitive %p\n", (void *)out);
     primitive_set_colour(out, primitive_get_colour(primitive));
     primitive_set_id(out, primitive_get_id(primitive));
-
-    if (primitive->has_normal) {
-      for (size_t n = 0; n < ARRAY_SIZE(out->normal); ++n) {
-        out->normal[n] = primitive->normal[n];
-      }
-      out->has_normal = true;
-    }
   } else {
     *split = false;
   }

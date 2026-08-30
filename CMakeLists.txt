@@ -98,6 +98,12 @@ if(UNIX)
     target_link_libraries(3dObj PUBLIC m)
 endif()
 
+include(CTest)
+
+if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+    add_subdirectory(tests)
+endif()
+
 install(TARGETS 3dObj
     ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include
