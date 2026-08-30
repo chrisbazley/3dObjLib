@@ -26,7 +26,6 @@
                   disabled.
   CJB: 11-Dec-20: Removed redundant uses of the 'extern' keyword.
   CJB: 28-Aug-26: Added primitive_is_convex.
-  CJB: 29-Aug-26: Added primitive_overlaps_line.
  */
 
 #ifndef PRIMITIVE_H
@@ -98,9 +97,6 @@ bool primitive_is_convex(const Primitive *primitive,
 
 bool primitive_contains(Primitive *q, Primitive *p,
                         const VertexArray *varray, Plane plane);
-
-bool primitive_overlaps_line(Primitive *polygon, Primitive *line,
-                             const VertexArray *varray, Plane plane);
 
 bool primitive_equal(const Primitive *q, const Primitive *p);
 
