@@ -310,6 +310,8 @@ Release 14 (DD MMM YYYY)
 - Use a canonical positive representation for zero coordinates in OBJ
   output, irrespective of the sign produced by floating-point arithmetic.
 - Allow an object containing no used vertices or primitives to be written.
+- Made primitive_contains_point public and allow it to test coordinates
+  which have not been added to a vertex array.
 
 Contact details
 ---------------

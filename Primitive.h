@@ -26,6 +26,7 @@
                   disabled.
   CJB: 11-Dec-20: Removed redundant uses of the 'extern' keyword.
   CJB: 28-Aug-26: Added primitive_is_convex.
+  CJB: 30-Aug-26: Made primitive_contains_point public.
  */
 
 #ifndef PRIMITIVE_H
@@ -97,6 +98,10 @@ bool primitive_is_convex(const Primitive *primitive,
 
 bool primitive_contains(Primitive *q, Primitive *p,
                         const VertexArray *varray, Plane plane);
+
+bool primitive_contains_point(Primitive *primitive,
+                              const VertexArray *varray,
+                              Coord (*point)[3], Plane plane);
 
 bool primitive_equal(const Primitive *q, const Primitive *p);
 

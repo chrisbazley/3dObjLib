@@ -56,6 +56,9 @@
   CJB: 29-Aug-26: Simplify primitive_is_convex. Don't require reversing a
                   non-convex primitive to reverse the normal calculated from
                   its first three vertices.
+  CJB: 30-Aug-26: Made primitive_contains_point public and changed it to
+                  accept coordinates which need not belong to a vertex.
+                  Made the function ensure its own bounding box.
  */
 
 /* ISO library header files */
@@ -582,51 +585,54 @@ static Coord primitive_get_top_y(Primitive * const primitive,
 /* This implementation allows for floating-point error and assumes that
    nearby points are contained within a polygon. This is important because
    it is used to decide which half of a split polygon to delete. */
-static bool primitive_contains_point(Primitive * const primitive,
-                                     const VertexArray * const varray,
-                                     const int v, const Plane plane)
+bool primitive_contains_point(Primitive * const primitive,
+                              const VertexArray * const varray,
+                              Coord (* const point)[3], const Plane plane)
 {
   bool is_inside = false;
 
   assert(primitive != NULL);
+  assert(varray != NULL);
+  assert(point != NULL);
 
   const int nsides = primitive_get_num_sides(primitive);
   if (nsides < 3) {
-    DEBUGF("Primitive %p with %d sides can't contain point %d\n",
-           (void *)primitive, nsides, v);
+    DEBUGF("Primitive %p with %d sides can't contain a point\n",
+           (void *)primitive, nsides);
     return false;
   }
+
+#if BBOX
+  if (!primitive_ensure_bbox(primitive, varray)) {
+    DEBUGF("Can't test point containment using incomplete primitive\n");
+    return false;
+  }
+#endif
 
   _Optional Coord (*start)[3];
   Coord start_x, start_y;
 
   const int last_side = primitive_get_side(primitive, nsides - 1);
-  if (last_side == v) {
-    DEBUGF("Point %d is also the end of the last edge\n", v);
-    return true;
-  }
-
   _Optional Coord (*end)[3] = vertex_array_get_coords(varray, last_side);
   if (!end) {
     return false;
   }
+  if (vector_equal(point, &*end)) {
+    DEBUGF("Point is also the end of the last edge\n");
+    return true;
+  }
   Coord end_x = *vector_x(&*end, plane);
   Coord end_y = *vector_y(&*end, plane);
 
-  _Optional Coord (* const point)[3] = vertex_array_get_coords(varray, v);
-  if (!point) {
-    return false;
-  }
-  const Coord px = *vector_x(&*point, plane), py = *vector_y(&*point, plane);
+  const Coord px = *vector_x(point, plane), py = *vector_y(point, plane);
 
 #if BBOX
   /* If the point is outside the bounding box (even allowing for error)
      then it can't be inside the polygon. */
-  assert(primitive->has_bbox);
-  if (!vector_xy_greater_or_equal(&*point, &primitive->low, plane) ||
-      !vector_xy_greater_or_equal(&primitive->high, &*point, plane)) {
-    DEBUGF("Point %d is outside bounding box of primitive %p\n",
-           v, (void *)primitive);
+  if (!vector_xy_greater_or_equal(point, &primitive->low, plane) ||
+      !vector_xy_greater_or_equal(&primitive->high, point, plane)) {
+    DEBUGF("Point is outside bounding box of primitive %p\n",
+           (void *)primitive);
     return false;
   }
 #endif /* BBOX */
@@ -638,23 +644,22 @@ static bool primitive_contains_point(Primitive * const primitive,
        end = start, end_x = start_x, end_y = start_y) {
 
     const int v2 = primitive_get_side(primitive, s);
-    if (v2 == v) {
-      DEBUGF("Point %d is also the start of edge %d\n", v, s);
-      return true;
-    }
-
     start = vertex_array_get_coords(varray, v2);
     if (!start) {
       return false;
+    }
+    if (vector_equal(point, &*start)) {
+      DEBUGF("Point is also the start of edge %d\n", s);
+      return true;
     }
     start_x = *vector_x(&*start, plane);
     start_y = *vector_y(&*start, plane);
     assert(end_x == *vector_x(&*end, plane));
     assert(end_y == *vector_y(&*end, plane));
 
-    DEBUGF("Testing point %d:%"PCOORD",%"PCOORD" against edge %d:"
+    DEBUGF("Testing point %"PCOORD",%"PCOORD" against edge %d:"
            "%"PCOORD",%"PCOORD" .. %"PCOORD",%"PCOORD"\n",
-            v, px, py, s, start_x, start_y, end_x, end_y);
+            px, py, s, start_x, start_y, end_x, end_y);
 
     /* Select edges that might be in the path of a ray from the point
        to be tested to infinite +x. */
@@ -676,7 +681,7 @@ static bool primitive_contains_point(Primitive * const primitive,
 
       if (coord_equal(py, end_y) || coord_equal(py, start_y)) {
         /* Horizontal edge intersects the point at its y coordinate. */
-        DEBUGF("Point %d is coincident with horizontal edge %d\n", v, s);
+        DEBUGF("Point is coincident with horizontal edge %d\n", s);
         return true;
       }
 
@@ -738,7 +743,7 @@ static bool primitive_contains_point(Primitive * const primitive,
     /* Unfortunately an inexact comparison here allows more leeway for
        points near steep lines than shallow ones. */
     if (coord_equal(px, intersect_x)) {
-      DEBUGF("Point %d is coincident with edge %d\n", v, s);
+      DEBUGF("Point is coincident with edge %d\n", s);
       return true;
     }
 
@@ -749,6 +754,17 @@ static bool primitive_contains_point(Primitive * const primitive,
   }
 
   return is_inside;
+}
+
+static bool primitive_contains_vertex(Primitive * const primitive,
+                                      const VertexArray * const varray,
+                                      const int vertex,
+                                      const Plane plane)
+{
+  _Optional Coord (* const point)[3] =
+      vertex_array_get_coords(varray, vertex);
+  return point != NULL &&
+         primitive_contains_point(primitive, varray, &*point, plane);
 }
 
 bool primitive_contains(Primitive * const q, Primitive * const p,
@@ -775,7 +791,7 @@ bool primitive_contains(Primitive * const q, Primitive * const p,
   const int nsides_p = primitive_get_num_sides(p);
   for (int t = 0; t < nsides_p; ++t) {
     const int side_p = primitive_get_side(p, t);
-    if (!primitive_contains_point(q, varray, side_p, plane)) {
+    if (!primitive_contains_vertex(q, varray, side_p, plane)) {
       DEBUGF("Primitive %p does not contain side %d (vertex %d) "
              "of primitive %p\n", (void *)q, t, side_p, (void *)p);
       return false;
@@ -1070,14 +1086,14 @@ bool primitive_clip(Primitive * const primitive,
   }
 
   int last_side = primitive_get_side(clipper, num_sides-1);
-  bool last_inside = primitive_contains_point(
+  bool last_inside = primitive_contains_vertex(
                        primitive, varray, last_side, plane);
 
   for (int t = 0; !(*split) && (t < num_sides); ++t) {
     const int side = primitive_get_side(clipper, t);
     DEBUGF("Front side %d: %d\n", t, side);
 
-    const bool this_inside = primitive_contains_point(
+    const bool this_inside = primitive_contains_vertex(
                                primitive, varray, side, plane);
     if ((last_inside && this_inside) ||
         primitive_intersect(primitive, last_side, side, varray, plane)) {
