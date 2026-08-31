@@ -36,7 +36,7 @@ static void read_file(FILE *file, char *buffer, size_t size)
   assert(file != NULL);
   assert(size > 0);
   assert(fflush(file) == 0);
-  rewind(file);
+  assert(fseek(file, 0, SEEK_SET) == 0);
   const size_t n = fread(buffer, 1, size - 1, file);
   buffer[n] = '\0';
 }
@@ -82,13 +82,13 @@ static void test1(void)
   assert(output_vertices(checked_file, 2, &varray, 1));
   read_file(checked_file, text, sizeof(text));
 
-  const char *next = strstr(text, "# 2 vertices");
+  _Optional const char *next = strstr(text, "# 2 vertices");
   assert(next != NULL);
-  next = strstr(next, "v 1.000000 2.000000 3.000000");
+  next = strstr(&*next, "v 1.000000 2.000000 3.000000");
   assert(next != NULL);
-  next = strstr(next, "# Following vertices rotate");
+  next = strstr(&*next, "# Following vertices rotate");
   assert(next != NULL);
-  next = strstr(next, "v 0.000000 5.000000 6.000000");
+  next = strstr(&*next, "v 0.000000 5.000000 6.000000");
   assert(next != NULL);
 
   assert(!fclose(checked_file));
@@ -130,15 +130,15 @@ static void test3(void)
 
   FILE *const checked_file = test_tmpfile();
   assert(output_primitives(checked_file, "object", 10, 3, &varray, &group, 1,
-                           NULL, NULL, &callback_context,
+                           0, 0, &callback_context,
                            VertexStyle_Positive, MeshStyle_NoChange));
   read_file(checked_file, text, sizeof(text));
 
-  const char *next = strstr(text, "g object object_0");
+  _Optional const char *next = strstr(text, "g object object_0");
   assert(next != NULL);
-  next = strstr(next, "usemtl colour_5");
+  next = strstr(&*next, "usemtl colour_5");
   assert(next != NULL);
-  next = strstr(next, "f 11 12 13");
+  next = strstr(&*next, "f 11 12 13");
   assert(next != NULL);
 
   assert(!fclose(checked_file));
@@ -159,15 +159,15 @@ static void test4(void)
 
   FILE *const checked_file = test_tmpfile();
   assert(output_primitives(checked_file, "object", 0, 3, &varray, &group, 1,
-                           NULL, NULL, &callback_context,
+                           0, 0, &callback_context,
                            VertexStyle_Negative, MeshStyle_NoChange));
   read_file(checked_file, text, sizeof(text));
 
-  const char *next = strstr(text, "g object object_0");
+  _Optional const char *next = strstr(text, "g object object_0");
   assert(next != NULL);
-  next = strstr(next, "usemtl colour_5");
+  next = strstr(&*next, "usemtl colour_5");
   assert(next != NULL);
-  next = strstr(next, "f -3 -2 -1");
+  next = strstr(&*next, "f -3 -2 -1");
   assert(next != NULL);
 
   assert(!fclose(checked_file));
@@ -194,11 +194,11 @@ static void test5(void)
   read_file(checked_file, text, sizeof(text));
 
   assert(calls == 2);
-  const char *next = strstr(text, "g object object_0");
+  _Optional const char *next = strstr(text, "g object object_0");
   assert(next != NULL);
-  next = strstr(next, "usemtl material_6");
+  next = strstr(&*next, "usemtl material_6");
   assert(next != NULL);
-  next = strstr(next, "f 1 2 3");
+  next = strstr(&*next, "f 1 2 3");
   assert(next != NULL);
 
   assert(!fclose(checked_file));
@@ -231,17 +231,17 @@ static void test6(void)
 
   FILE *const checked_file = test_tmpfile();
   assert(output_primitives(checked_file, "quad", 0, 4, &varray, &group, 1,
-                           NULL, NULL, &callback_context,
+                           0, 0, &callback_context,
                            VertexStyle_Positive, MeshStyle_TriangleFan));
   read_file(checked_file, text, sizeof(text));
 
-  const char *next = strstr(text, "g quad quad_0");
+  _Optional const char *next = strstr(text, "g quad quad_0");
   assert(next != NULL);
-  next = strstr(next, "usemtl colour_0");
+  next = strstr(&*next, "usemtl colour_0");
   assert(next != NULL);
-  next = strstr(next, "f 1 2 3");
+  next = strstr(&*next, "f 1 2 3");
   assert(next != NULL);
-  next = strstr(next, "f 1 3 4");
+  next = strstr(&*next, "f 1 3 4");
   assert(next != NULL);
 
   assert(!fclose(checked_file));
@@ -262,17 +262,17 @@ static void test7(void)
 
   FILE *const checked_file = test_tmpfile();
   assert(output_primitives(checked_file, "quad", 0, 4, &varray, &group, 1,
-                           NULL, NULL, &callback_context,
+                           0, 0, &callback_context,
                            VertexStyle_Positive, MeshStyle_TriangleStrip));
   read_file(checked_file, text, sizeof(text));
 
-  const char *next = strstr(text, "g quad quad_0");
+  _Optional const char *next = strstr(text, "g quad quad_0");
   assert(next != NULL);
-  next = strstr(next, "usemtl colour_0");
+  next = strstr(&*next, "usemtl colour_0");
   assert(next != NULL);
-  next = strstr(next, "f 1 2 3");
+  next = strstr(&*next, "f 1 2 3");
   assert(next != NULL);
-  next = strstr(next, "f 4 1 3");
+  next = strstr(&*next, "f 4 1 3");
   assert(next != NULL);
 
   assert(!fclose(checked_file));
@@ -292,7 +292,7 @@ static void test8(void)
   FILE *const checked_file = test_tmpfile();
   assert(output_vertices(checked_file, 0, &varray, -1));
   assert(output_primitives(checked_file, "empty", 0, 0, &varray, &group, 1,
-                           NULL, NULL, &callback_context,
+                           0, 0, &callback_context,
                            VertexStyle_Positive, MeshStyle_NoChange));
 
   assert(!fclose(checked_file));
@@ -330,17 +330,17 @@ static void test9(void)
 
   FILE *const checked_file = test_tmpfile();
   assert(output_primitives(checked_file, "object", 0, 3, &varray, &group, 1,
-                           NULL, NULL, &callback_context,
+                           0, 0, &callback_context,
                            VertexStyle_Positive, MeshStyle_NoChange));
   read_file(checked_file, text, sizeof(text));
 
-  const char *next = strstr(text, "g object object_0");
+  _Optional const char *next = strstr(text, "g object object_0");
   assert(next != NULL);
-  next = strstr(next, "usemtl colour_0");
+  next = strstr(&*next, "usemtl colour_0");
   assert(next != NULL);
-  next = strstr(next, "p 1\n");
+  next = strstr(&*next, "p 1\n");
   assert(next != NULL);
-  next = strstr(next, "l 2 3\n");
+  next = strstr(&*next, "l 2 3\n");
   assert(next != NULL);
 
   assert(!fclose(checked_file));
