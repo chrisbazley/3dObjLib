@@ -73,11 +73,13 @@ static void test4(void)
 
   _Optional Primitive *a = group_add_primitive(&group);
   _Optional Primitive *b = group_add_primitive(&group);
-  assert(a != NULL && b != NULL);
+  assert(a != NULL);
+  assert(b != NULL);
 
   _Optional Primitive *first = group_get_primitive(&group, 0);
   _Optional Primitive *second = group_get_primitive(&group, 1);
-  assert(first != NULL && second != NULL);
+  assert(first != NULL);
+  assert(second != NULL);
   primitive_set_id(&*first, 10);
   primitive_set_id(&*second, 20);
 
@@ -115,7 +117,8 @@ static void test5(void)
   assert(group_get_num_primitives(&group) == 2);
   _Optional Primitive *first = group_get_primitive(&group, 0);
   _Optional Primitive *second = group_get_primitive(&group, 1);
-  assert(first != NULL && second != NULL);
+  assert(first != NULL);
+  assert(second != NULL);
   assert(primitive_get_id(&*first) == 0);
   assert(primitive_get_id(&*second) == 2);
 

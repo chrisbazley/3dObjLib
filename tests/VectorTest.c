@@ -137,8 +137,11 @@ static void test10(void)
 
   vector_find_plane(&v, &p);
   assert(p.z == 1);
-  assert(p.x < 3 && p.y < 3);
-  assert(p.x != p.y && p.x != p.z && p.y != p.z);
+  assert(p.x < 3);
+  assert(p.y < 3);
+  assert(p.x != p.y);
+  assert(p.x != p.z);
+  assert(p.y != p.z);
 }
 
 static void test11(void)
