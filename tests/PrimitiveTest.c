@@ -213,9 +213,9 @@ static void test8(void)
   VertexArray varray;
   Primitive primitive;
   Plane plane = {0, 1, 2};
-  Coord inside[3] = {2, 2, 0};
-  Coord edge[3] = {0, 2, 0};
-  Coord outside[3] = {5, 2, 0};
+  Coord inside[3] = {2, 2, 0},
+        edge[3] = {0, 2, 0},
+        outside[3] = {5, 2, 0};
 
   vertex_array_init(&varray);
   make_square(&varray, &primitive, 0, 0, 4, 4);
@@ -276,12 +276,12 @@ static void test11(void)
   vertex_array_init(&varray);
   make_square(&varray, &square, 0, 0, 4, 4);
 
-  const int a = add_vertex(&varray, -1, 2, 0);
-  const int b = add_vertex(&varray, 5, 2, 0);
+  const int a = add_vertex(&varray, -1, 2, 0),
+            b = add_vertex(&varray, 5, 2, 0);
   assert(primitive_intersect(&square, a, b, &varray, plane));
 
-  const int c = add_vertex(&varray, -1, 5, 0);
-  const int d = add_vertex(&varray, 5, 5, 0);
+  const int c = add_vertex(&varray, -1, 5, 0),
+            d = add_vertex(&varray, 5, 5, 0);
   assert(!primitive_intersect(&square, c, d, &varray, plane));
 
   vertex_array_free(&varray);
@@ -297,8 +297,8 @@ static void test12(void)
 
   vertex_array_init(&varray);
   make_square(&varray, &square, 0, 0, 4, 4);
-  const int a = add_vertex(&varray, 2, -1, 0);
-  const int b = add_vertex(&varray, 2, 5, 0);
+  const int a = add_vertex(&varray, 2, -1, 0),
+            b = add_vertex(&varray, 2, 5, 0);
 
   assert(primitive_split(&square, a, b, &varray, plane, &other, &split));
   assert(split);
@@ -432,11 +432,11 @@ static void test20(void)
   VertexArray varray;
   Primitive triangle;
   Plane plane = {0, 1, 2};
-  Coord vertex[3] = {0, 0, 0};
-  Coord horizontal[3] = {2, 0, 0};
-  Coord sloping[3] = {2, 2, 0};
-  Coord inside[3] = {1, 1, 0};
-  Coord outside_bbox[3] = {5, 5, 0};
+  Coord vertex[3] = {0, 0, 0},
+        horizontal[3] = {2, 0, 0},
+        sloping[3] = {2, 2, 0},
+        inside[3] = {1, 1, 0},
+        outside_bbox[3] = {5, 5, 0};
 
   vertex_array_init(&varray);
   make_triangle(&varray, &triangle, 0, 0, 4, 0, 0, 4);
@@ -461,15 +461,15 @@ static void test21(void)
   make_square(&varray, &square, 0, 0, 4, 4);
 
   primitive_init(&line);
-  const int l0 = add_vertex(&varray, -1, 2, 0);
-  const int l1 = add_vertex(&varray, 5, 2, 0);
+  const int l0 = add_vertex(&varray, -1, 2, 0),
+            l1 = add_vertex(&varray, 5, 2, 0);
   assert(primitive_add_side(&line, l0) == 0);
   assert(primitive_add_side(&line, l1) == 1);
   assert(!primitive_intersect(&line, l0, l1, &varray, plane));
 
   /* Sharing a polygon vertex is explicitly not an intersection. */
-  const int shared = primitive_get_side(&square, 0);
-  const int outside = add_vertex(&varray, -1, -1, 0);
+  const int shared = primitive_get_side(&square, 0),
+            outside = add_vertex(&varray, -1, -1, 0);
   assert(!primitive_intersect(&square, shared, outside, &varray, plane));
 
   /*
@@ -477,13 +477,13 @@ static void test21(void)
    * likewise excluded, even if that endpoint is not one of the polygon's
    * vertex IDs.
    */
-  const int coincident = add_vertex(&varray, 0, 2, 0);
-  const int farther = add_vertex(&varray, -2, 2, 0);
+  const int coincident = add_vertex(&varray, 0, 2, 0),
+            farther = add_vertex(&varray, -2, 2, 0);
   assert(!primitive_intersect(&square, coincident, farther, &varray, plane));
 
   /* Passing through a corner in the middle of an edge still counts. */
-  const int cross_a = add_vertex(&varray, -1, -1, 0);
-  const int cross_b = add_vertex(&varray, 1, 1, 0);
+  const int cross_a = add_vertex(&varray, -1, -1, 0),
+            cross_b = add_vertex(&varray, 1, 1, 0);
   assert(primitive_intersect(&square, cross_a, cross_b, &varray, plane));
 
   vertex_array_free(&varray);
@@ -502,14 +502,14 @@ static void test22(void)
   primitive_init(&line);
   assert(primitive_add_side(&line, add_vertex(&varray, 0, 0, 0)) == 0);
   assert(primitive_add_side(&line, add_vertex(&varray, 1, 0, 0)) == 1);
-  const int a = add_vertex(&varray, 0, -1, 0);
-  const int b = add_vertex(&varray, 0, 1, 0);
+  const int a = add_vertex(&varray, 0, -1, 0),
+            b = add_vertex(&varray, 0, 1, 0);
   assert(primitive_split(&line, a, b, &varray, plane, &other, &split));
   assert(!split);
 
   make_square(&varray, &square, 0, 0, 4, 4);
-  const int c = add_vertex(&varray, 5, -1, 0);
-  const int d = add_vertex(&varray, 5, 5, 0);
+  const int c = add_vertex(&varray, 5, -1, 0),
+            d = add_vertex(&varray, 5, 5, 0);
   split = true;
   assert(primitive_split(&square, c, d, &varray, plane, &other, &split));
   assert(!split);
@@ -528,8 +528,8 @@ static void test23(void)
   vertex_array_init(&varray);
   make_square(&varray, &square, 0, 0, 4, 4);
 
-  const int a = primitive_get_side(&square, 0);
-  const int b = primitive_get_side(&square, 2);
+  const int a = primitive_get_side(&square, 0),
+            b = primitive_get_side(&square, 2);
   const int before = vertex_array_get_num_vertices(&varray);
 
   assert(primitive_split(&square, a, b, &varray, plane, &other, &split));
@@ -554,8 +554,8 @@ static void test24(void)
   make_square(&varray, &square, 0, 0, 4, 4);
   assert(primitive_get_normal(&square, &varray, &before));
 
-  const int a = add_vertex(&varray, 2, -1, 0);
-  const int b = add_vertex(&varray, 2, 5, 0);
+  const int a = add_vertex(&varray, 2, -1, 0),
+            b = add_vertex(&varray, 2, 5, 0);
   assert(primitive_split(&square, a, b, &varray, plane, &other, &split));
   assert(split);
   assert(other.has_normal);
@@ -687,8 +687,8 @@ static void test31(void)
 
   vertex_array_init(&varray);
   make_square(&varray, &square, 0, 0, 4, 4);
-  const int a = add_vertex(&varray, 2, -1, 0);
-  const int b = add_vertex(&varray, 2, 5, 0);
+  const int a = add_vertex(&varray, 2, -1, 0),
+            b = add_vertex(&varray, 2, 5, 0);
 
   /* Fill the initial allocation so adding an intersection must grow it. */
   while (vertex_array_get_num_vertices(&varray) < varray.nalloc)
