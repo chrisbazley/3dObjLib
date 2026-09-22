@@ -8,6 +8,7 @@
 #undef NDEBUG
 
 #include <assert.h>
+#include "MacroUtils.h"
 
 #ifdef USE_OPTIONAL
 #include "Optional.h"
@@ -20,9 +21,6 @@
 #define Fortify_LeaveScope()
 #define Fortify_OutputStatistics()
 #endif
-
-#define NOT_USED(x) ((void)(x))
-#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 void Coord_tests(void);
 void Vector_tests(void);
