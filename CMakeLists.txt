@@ -7,6 +7,10 @@ option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
 
 include(FetchContent)
 
+FetchContent_Declare(CBUtil GIT_REPOSITORY https://github.com/chrisbazley/CBUtilLib.git GIT_TAG main)
+
+FetchContent_MakeAvailable(CBUtil)
+
 if(USE_OPTIONAL)
     if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang")
         message(FATAL_ERROR
@@ -79,13 +83,7 @@ set_target_properties(3dObj PROPERTIES
     DEBUG_POSTFIX "dbg"
 )
 
-if(USE_OPTIONAL)
-    FetchContent_Declare(CBUtil GIT_REPOSITORY https://github.com/chrisbazley/CBUtilLib.git GIT_TAG main)
-
-    FetchContent_MakeAvailable(CBUtil)
-
-    target_link_libraries(3dObj PRIVATE CBUtil)
-endif()
+target_link_libraries(3dObj PRIVATE CBUtil)
 
 target_include_directories(3dObj PUBLIC .)
 

@@ -21,10 +21,13 @@
   CJB: 06-Apr-25: Dogfooding the _Optional qualifier.
   CJB: 11-Apr-25: Move the USE_OPTIONAL gubbins down the file.
   CJB: 15-Jun-26: Send the debug log to stderr not stdout.
+  CJB: 22-Sep-26: Use common macro definitions from CBUtilLib.
  */
 
 #ifndef M3dObjMisc_h
 #define M3dObjMisc_h
+
+#include "MacroUtils.h"
 
 /* Fortified memory allocation shell */
 #ifdef FORTIFY
@@ -51,13 +54,5 @@
 #ifdef USE_OPTIONAL
 #include "Optional.h"
 #endif
-
-#define NOT_USED(x) ((void)(x))
-
-#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
-
-#define LOWEST(a, b) ((a) < (b) ? (a) : (b))
-
-#define HIGHEST(a, b) ((a) > (b) ? (a) : (b))
 
 #endif /* M3dObjMisc_h */
