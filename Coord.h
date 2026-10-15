@@ -20,6 +20,7 @@
 /* History:
   CJB: 05-Aug-18: Copied this source file from SF3KtoObj.
   CJB: 26-Aug-18: Added a new function, coord_less_than.
+  CJB: 15-Oct-26: Use single-precision maths with SDCC.
  */
 
 #ifndef COORD_H
@@ -36,18 +37,40 @@
 
 #define PCOORD "g"
 
+#ifdef __SDCC
+/* SDCC provides only single-precision maths and no INFINITY macro. */
+#define COORD_INF (1.0f / 0.0f)
+typedef float Coord;
+#else
 #define COORD_INF ((Coord)INFINITY)
-
 typedef double Coord;
+#endif
 
 static inline Coord coord_abs(const Coord a)
 {
+#ifdef __SDCC
+  return fabsf(a);
+#else
   return fabs(a);
+#endif
 }
 
 static inline Coord coord_sqrt(const Coord a)
 {
+#ifdef __SDCC
+  return sqrtf(a);
+#else
   return sqrt(a);
+#endif
+}
+
+static inline bool coord_is_finite(const Coord a)
+{
+#ifdef __SDCC
+  return !isinf(a) && !isnan(a);
+#else
+  return isfinite(a);
+#endif
 }
 
 static inline bool coord_equal(const Coord a, const Coord b)

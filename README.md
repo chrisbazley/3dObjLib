@@ -140,6 +140,20 @@ For example, use the following commands to build on Linux:
   make
 ```
 
+  To build the geometry modules with SDCC for the 65C02, put SDCC and
+ucsim_mos6502 on PATH, then use:
+```
+  cmake -S . -B build-sdcc -DCMAKE_TOOLCHAIN_FILE=cmake/sdcc-65c02.cmake \
+    -DUSE_OPTIONAL=ON
+  cmake --build build-sdcc
+  ctest --test-dir build-sdcc --output-on-failure
+```
+  SDCC trunk r16999 uses single-precision coordinates. OBJ file output is
+omitted because its C library does not provide FILE streams. Use -DBUILD_TESTING=OFF when
+only building the library; the simulator and Python are then unnecessary.
+The simulator runs the coordinate and vector tests; see tests/sdcc/NOTES.md
+for the remaining test limitations.
+
   Three make files are also supplied:
 
 - 'Makefile' is intended for use with GNU Make and the GNU C Compiler on Linux.

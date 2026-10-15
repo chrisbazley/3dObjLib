@@ -10,12 +10,22 @@ include(FetchContent)
 
 FetchContent_Declare(CBUtil GIT_REPOSITORY https://github.com/chrisbazley/CBUtilLib.git GIT_TAG main)
 
-FetchContent_MakeAvailable(CBUtil)
+include(CTest)
+
+if(CMAKE_C_COMPILER_ID STREQUAL "SDCC")
+    set(OBJ_BUILD_TESTING "${BUILD_TESTING}")
+    set(BUILD_TESTING OFF)
+    FetchContent_MakeAvailable(CBUtil)
+    set(BUILD_TESTING "${OBJ_BUILD_TESTING}")
+    set_property(DIRECTORY "${cbutil_SOURCE_DIR}" PROPERTY EXCLUDE_FROM_ALL TRUE)
+else()
+    FetchContent_MakeAvailable(CBUtil)
+endif()
 
 if(USE_OPTIONAL)
-    if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang")
+    if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang|SDCC")
         message(FATAL_ERROR
-            "USE_OPTIONAL requires Christopher Bazley's Clang fork")
+            "USE_OPTIONAL requires SDCC or Christopher Bazley's Clang fork")
     endif()
 
     add_compile_definitions(USE_OPTIONAL)
@@ -37,13 +47,23 @@ if(USE_FORTIFY)
     link_libraries(Fortify)
 endif()
 
+if(CMAKE_C_COMPILER_ID STREQUAL "SDCC")
+    add_compile_options(--std-c99 --max-allocs-per-node 100
+        "SHELL:--disable-warning 110" "SHELL:--disable-warning 126")
+    if(BUILD_TESTING)
+        add_compile_options("-Wp-include,${cbutil_SOURCE_DIR}/tests/sdcc/compat.h")
+        target_compile_options(CBUtil PRIVATE
+            "-Wp-include,${cbutil_SOURCE_DIR}/tests/sdcc/compat.h")
+    endif()
+endif()
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_XCODE_ATTRIBUTE_RUN_CLANG_STATIC_ANALYZER "YES")
 
 if(MSVC)
     # MSVC equivalent of -Wall -Wextra is /W4
     add_compile_options(/W4 /wd4200 /wd4996 /wd4130)
-else()
+elseif(NOT CMAKE_C_COMPILER_ID STREQUAL "SDCC")
     # For GCC and Clang
     add_compile_options(-Wall -Wextra -Wsign-compare -pedantic)
 endif()
@@ -51,6 +71,8 @@ endif()
 if(WARNINGS_AS_ERRORS AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     if(MSVC)
         add_compile_options(/WX)
+    elseif(CMAKE_C_COMPILER_ID STREQUAL "SDCC")
+        add_compile_options(--Werror)
     else()
         add_compile_options(-Werror)
     endif()
@@ -82,6 +104,10 @@ if(ENABLE_CLANG_TIDY AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 endif()
 
 file(GLOB SOURCES "*.c")
+if(CMAKE_C_COMPILER_ID STREQUAL "SDCC")
+    # SDCC's C library has no FILE streams.
+    list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ObjFile.c")
+endif()
 file(GLOB PUBLIC_HEADERS "*.h")
 file(GLOB HEADER_FILES CONFIGURE_DEPENDS "Internal/*.h")
 
@@ -92,7 +118,13 @@ set_target_properties(3dObj PROPERTIES
     DEBUG_POSTFIX "dbg"
 )
 
-target_link_libraries(3dObj PRIVATE CBUtil)
+if(CMAKE_C_COMPILER_ID STREQUAL "SDCC")
+    # The geometry modules need only CBUtil's header macros.
+    target_compile_definitions(3dObj PUBLIC CBUTIL_SDCC)
+    target_include_directories(3dObj PRIVATE "${cbutil_SOURCE_DIR}")
+else()
+    target_link_libraries(3dObj PRIVATE CBUtil)
+endif()
 
 target_include_directories(3dObj PUBLIC .)
 
@@ -105,9 +137,7 @@ if(UNIX)
     target_link_libraries(3dObj PUBLIC m)
 endif()
 
-include(CTest)
-
-if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+if(BUILD_TESTING AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
     add_subdirectory(tests)
 endif()
 
