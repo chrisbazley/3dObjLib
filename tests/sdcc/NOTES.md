@@ -13,8 +13,7 @@ The default run covers 24 existing cases with active assertions:
 | --- | --- |
 | Coord | 5 |
 | Vector | 11 |
-| Vertex1 (storage) | 7 |
-| Vertex4 (printing) | 1 |
+| Vertex1 (storage and printing) | 8 |
 
 Vertex is split into smaller programs by VERTEX_TEST_PART. Its native suite
 still runs all cases, including Fortify cases when enabled.
@@ -89,3 +88,30 @@ with this target's integer widths. There is also a preprocessor warning
 because SDCC math.h and CBUtil MacroUtils.h both define PI with different
 spellings. Neither warning has been suppressed or worked around here.
 The workflow retains the complete build log and simulator logs as artifacts.
+
+## Image-size findings
+
+SDCC r16999 emits out-of-line copies of unused static inline functions.
+The wrappers in CBUtil's Optional.h consequently pull otherwise unused
+library functions into the test images. This is independent of `_Optional`
+analysis. With the implementation unsplit, changing just those wrappers'
+linkage experimentally reduced Coord from 20,907 to 16,628 bytes, and Vector
+from 37,890 to 33,354 bytes. These counts sum CODE, RODATA, GSINIT, GSFINAL and
+XINIT from the linker maps, excluding RAM and absolute interrupt vectors.
+This linkage experiment is not applied by this build.
+
+A minimal unused strrchr wrapper adds 18 bytes of wrapper code and pulls in
+the 167-byte library function. [Compiler Explorer reproducer for SDCC 4.6.0
+and trunk, targeting 65C02](https://godbolt.org/z/q1ETsqG11).
+
+For Coord, printf_large alone contributes 4,303 bytes; floating-point
+multiplication, addition and division contribute 1,684, 1,518 and 1,510 bytes.
+The remaining image therefore cannot be attributed just to the tests.
+
+Separating vertex sorting/renumbering and reducing clipping images to a
+single case still did not make clipping fit, even with the experimental
+wrapper linkage. The smallest such image ended at 0x116da in the current
+layout, beyond the address space. Those single-case partitions and the
+unproductive implementation split are not retained. Larger refactoring
+needs evidence that it will recover enough space, and the intersection
+runtime failures remain an independent problem.
