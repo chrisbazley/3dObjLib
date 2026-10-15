@@ -14,8 +14,8 @@
 /* Local headers */
 #include "Tests.h"
 
-/* VERTEX_TEST_PART selects a smaller SDCC program: 1 storage, 2 finite edge
- * intersection, 3 edge against infinite line, or 4 printing. Native builds
+/* VERTEX_TEST_PART selects a smaller SDCC program: 1 storage and printing,
+ * 2 finite edge intersection, or 3 edge against infinite line. Native builds
  * leave it undefined and run every case, including Fortify cases. */
 
 static int add(VertexArray *varray, Coord x, Coord y, Coord z)
@@ -211,7 +211,7 @@ static void test9(void)
 
 #endif /* Test part 3 */
 
-#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 4
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 1
 static void test10(void)
 {
   /* Print vertex */
@@ -223,7 +223,7 @@ static void test10(void)
   vertex_array_free(&varray);
 }
 
-#endif /* Test part 4 */
+#endif /* Test part 1 */
 
 #ifdef FORTIFY
 static void test11(void)
@@ -296,9 +296,9 @@ void Vertex_tests(void)
 #if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 3
     {"Edge against infinite line", test9},
 #endif /* Test part 3 */
-#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 4
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 1
     {"Print vertex", test10},
-#endif /* Test part 4 */
+#endif /* Test part 1 */
 #ifdef FORTIFY
     {"Allocate fail recovery", test11},
     {"Add fail recovery", test12},
