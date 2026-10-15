@@ -14,12 +14,17 @@
 /* Local headers */
 #include "Tests.h"
 
+/* VERTEX_TEST_PART selects a smaller SDCC program: 1 storage, 2 finite edge
+ * intersection, 3 edge against infinite line, or 4 printing. Native builds
+ * leave it undefined and run every case, including Fortify cases. */
+
 static int add(VertexArray *varray, Coord x, Coord y, Coord z)
 {
   Coord coords[3] = {x, y, z};
   return vertex_array_add_vertex(varray, &coords);
 }
 
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 1
 static void test1(void)
 {
   /* Init, clear and free */
@@ -157,6 +162,9 @@ static void test7(void)
   vertex_array_free(&varray);
 }
 
+#endif /* Test part 1 */
+
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 2
 static void test8(void)
 {
   /* Finite edge intersection */
@@ -177,6 +185,9 @@ static void test8(void)
   vertex_array_free(&varray);
 }
 
+#endif /* Test part 2 */
+
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 3
 static void test9(void)
 {
   /* Edge against infinite line */
@@ -198,6 +209,9 @@ static void test9(void)
   vertex_array_free(&varray);
 }
 
+#endif /* Test part 3 */
+
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 4
 static void test10(void)
 {
   /* Print vertex */
@@ -208,6 +222,8 @@ static void test10(void)
   putchar('\n');
   vertex_array_free(&varray);
 }
+
+#endif /* Test part 4 */
 
 #ifdef FORTIFY
 static void test11(void)
@@ -265,6 +281,7 @@ void Vertex_tests(void)
     const char *test_name;
     void (*test_func)(void);
   } unit_tests[] = {
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 1
     {"Init, clear and free", test1},
     {"Allocation", test2},
     {"Add and query", test3},
@@ -272,9 +289,16 @@ void Vertex_tests(void)
     {"Used flags", test5},
     {"Duplicate detection", test6},
     {"Renumber", test7},
+#endif /* Test part 1 */
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 2
     {"Finite edge intersection", test8},
+#endif /* Test part 2 */
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 3
     {"Edge against infinite line", test9},
+#endif /* Test part 3 */
+#if !defined(VERTEX_TEST_PART) || VERTEX_TEST_PART == 4
     {"Print vertex", test10},
+#endif /* Test part 4 */
 #ifdef FORTIFY
     {"Allocate fail recovery", test11},
     {"Add fail recovery", test12},

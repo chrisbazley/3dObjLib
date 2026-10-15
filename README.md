@@ -151,8 +151,8 @@ ucsim_mos6502 on PATH, then use:
   SDCC trunk r16999 uses single-precision coordinates. OBJ file output is
 omitted because its C library does not provide FILE streams. Use -DBUILD_TESTING=OFF when
 only building the library; the simulator and Python are then unnecessary.
-The simulator runs the coordinate and vector tests; see tests/sdcc/NOTES.md
-for the remaining test limitations.
+The simulator runs the coordinate and vector suites and the vertex storage
+and printing cases; see tests/sdcc/NOTES.md for the remaining limitations.
 
   Three make files are also supplied:
 
