@@ -115,11 +115,11 @@ static void test8(void)
 
 static void test9(void)
 {
-  /* Line intersection */
+  /* Line intersection. Keep the larger fixture off the 65C02 stack. */
   const Plane p = {0, 1, 2};
-  Coord a[3] = {0, 0, 0}, b[3] = {2, 2, 0};
-  Coord c[3] = {0, 2, 0}, d[3] = {2, 0, 0};
-  Coord out[3];
+  static Coord a[3] = {0, 0, 0}, b[3] = {2, 2, 0};
+  static Coord c[3] = {0, 2, 0}, d[3] = {2, 0, 0};
+  static Coord out[3];
 
   assert(vector_intersect(&a, &b, &c, &d, p, &out));
   assert(same_vector(&out, 1, 1, 0));

@@ -60,6 +60,7 @@
                   accept coordinates which need not belong to a vertex.
                   Made the function ensure its own bounding box.
   CJB: 30-Aug-26: Preserve a cached normal when splitting a primitive.
+  CJB: 15-Oct-26: Use the coordinate wrapper for finite-value checks.
  */
 
 /* ISO library header files */
@@ -408,7 +409,7 @@ bool primitive_is_convex(const Primitive * const primitive,
     vector_sub(&*b_coords, &*a_coords, &edge);
     *vector_z(&edge, plane) = 0;
     const Coord edge_length = vector_mag(&edge);
-    if (!isfinite(edge_length) || coord_equal(edge_length, 0)) {
+    if (!coord_is_finite(edge_length) || coord_equal(edge_length, 0)) {
       return false;
     }
 
@@ -434,7 +435,7 @@ bool primitive_is_convex(const Primitive * const primitive,
       *vector_z(&offset, plane) = 0;
       vector_cross(&edge_unit, &offset, &cross);
       const Coord distance = *vector_z(&cross, plane);
-      if (!isfinite(distance)) {
+      if (!coord_is_finite(distance)) {
         return false;
       }
       if (!coord_equal(distance, 0)) {

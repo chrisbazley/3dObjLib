@@ -22,6 +22,7 @@
   CJB: 11-Apr-25: Move the USE_OPTIONAL gubbins down the file.
   CJB: 15-Jun-26: Send the debug log to stderr not stdout.
   CJB: 22-Sep-26: Use common macro definitions from CBUtilLib.
+  CJB: 15-Oct-26: Omit debug output with SDCC, which lacks FILE streams.
  */
 
 #ifndef M3dObjMisc_h
@@ -43,11 +44,13 @@
 #include <stdio.h>
 #include <assert.h>
 
-#ifdef DEBUG_OUTPUT
+#if defined(__SDCC)
+#define DEBUGF(...) ((void)0)
+#elif defined(DEBUG_OUTPUT)
 #define DEBUGF(...) if (1) fprintf(stderr, __VA_ARGS__)
 #else
 #define DEBUGF(...) if (0) fprintf(stderr, __VA_ARGS__)
-#endif /* DEBUG_OUTPUT */
+#endif /* __SDCC / DEBUG_OUTPUT */
 
 #endif /* USE_CBDEBUG */
 
