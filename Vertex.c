@@ -35,6 +35,9 @@
                   to int in vertex_array_find_duplicates.
   CJB: 29-Aug-26: Compare vertex IDs to give equal-coordinate vertices a
                   deterministic order.
+  CJB: 25-Oct-26: Keep checked vertex array pointers across calls when
+                  finding duplicates and renumbering vertices. Check the
+                  upper ID bound only when ptrdiff_t can exceed INT_MAX.
  */
 
 /* ISO library header files */
@@ -43,6 +46,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <stdint.h>
 
 /* Local header files */
 #include "Vector.h"
@@ -272,7 +276,8 @@ int vertex_array_find_duplicates(VertexArray * const varray,
   assert(varray->nvertices <= varray->nalloc);
 
   const int nvertices = varray->nvertices;
-  if (nvertices > 0 && varray->vertices) {
+  _Optional Vertex *const vertices = varray->vertices;
+  if (nvertices > 0 && vertices) {
     /* Allocate a temporary array of pointers to vertices */
     Vertex *_Optional *new_sorted = varray->sorted;
     if (nvertices > varray->nsorted || !new_sorted) {
@@ -297,7 +302,7 @@ int vertex_array_find_duplicates(VertexArray * const varray,
     Vertex ** const sorted = &*new_sorted;
 
     for (int v = 0; v < nvertices; ++v) {
-      sorted[v] = &varray->vertices[v];
+      sorted[v] = &vertices[v];
     }
 
     /* Sort the array of pointers */
@@ -322,10 +327,12 @@ int vertex_array_find_duplicates(VertexArray * const varray,
         /* Link the duplicate vertex to the original so that querying its ID
            returns the original vertex's ID (whatever that turns out to be
            after renumbering all of the vertices). */
-        assert(sorted[last] >= varray->vertices);
-        ptrdiff_t const pd = sorted[last] - varray->vertices;
+        assert(sorted[last] >= vertices);
+        ptrdiff_t const pd = sorted[last] - vertices;
         assert(pd >= 0);
+#if PTRDIFF_MAX > INT_MAX
         assert(pd <= INT_MAX);
+#endif
         sorted[v]->dup = (int)pd;
 
         /* To ensure that the original vertex is output, it must be marked if
@@ -385,9 +392,10 @@ int vertex_array_renumber(VertexArray * const varray, const bool verbose)
   /* Renumber marked vertices */
   int next_id = 0;
   const int nvertices = varray->nvertices;
-  if (varray->vertices) {
+  _Optional Vertex *const vertices = varray->vertices;
+  if (vertices) {
     for (int v = 0; v < nvertices; ++v) {
-      Vertex * const vertex = &varray->vertices[v];
+      Vertex * const vertex = &vertices[v];
       assert(vertex != NULL);
       if (vertex->marked) {
         /* Keep this vertex */
