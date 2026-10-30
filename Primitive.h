@@ -43,7 +43,9 @@
      BBOX=0: 5.24 seconds
      BBOX=1: 2.66 seconds (roughly double speed)
 */
+#ifndef BBOX
 #define BBOX 1
+#endif
 
 typedef struct {
   int colour;

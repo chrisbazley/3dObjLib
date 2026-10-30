@@ -16,6 +16,17 @@ Main features:
 - Clipping of overlapping coplanar polygons (to avoid "Z-fighting").
 - OBJ file generation.
 
+Bounding-box configuration
+--------------------------
+`USE_BBOX` is a CMake option, enabled by default. Configure with
+`-DUSE_BBOX=OFF` to build and test without primitive bounding-box caching.
+The same geometry tests run in both configurations.
+
+The setting changes the public `Primitive` structure layout. CMake propagates
+the matching `BBOX=0` or `BBOX=1` definition to users of the `3dObj` target.
+For native makefiles or an installed archive, compile every consumer with
+the same `BBOX` value as the library; the header defaults to `1`.
+
 Clipping
 --------
   Some objects are liable to suffer from a phenomenon known as "Z-fighting"

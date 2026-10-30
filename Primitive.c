@@ -557,31 +557,35 @@ bool primitive_coplanar(Primitive *p, Primitive *q,
   return coplanar;
 }
 
-/* Find the highest coordinate of the primitive. */
-static Coord primitive_get_top_y(Primitive * const primitive,
-                                 const VertexArray *varray,
-                                 const Plane plane)
+/* Find the highest coordinate, returning false for a missing vertex. */
+static bool primitive_get_top_y(Primitive * const primitive,
+                                const VertexArray *varray,
+                                const Plane plane, Coord *const top_y)
 {
   assert(primitive != NULL);
+  assert(top_y != NULL);
 #if BBOX
   assert(primitive->has_bbox);
-  Coord const top_y = primitive->high[plane.y];
+  *top_y = primitive->high[plane.y];
   NOT_USED(varray);
 #else /* BBOX */
-  Coord top_y = -COORD_INF;
+  *top_y = -COORD_INF;
   const int nsides = primitive_get_num_sides(primitive);
   for (int s = 0; s < nsides; ++s) {
     const int v = primitive_get_side(primitive, s);
-    Coord (* const coords)[3] = vertex_array_get_coords(varray, v);
+    _Optional Coord (* const coords)[3] = vertex_array_get_coords(varray, v);
+    if (!coords) {
+      return false;
+    }
     const Plane p = plane;
-    Coord const y = *vector_y(coords, p);
-    if (y > top_y) {
-      top_y = y;
+    Coord const y = *vector_y(&*coords, p);
+    if (y > *top_y) {
+      *top_y = y;
     }
   }
 #endif /* BBOX */
-  DEBUGF("Top y is %"PCOORD"\n", top_y);
-  return top_y;
+  DEBUGF("Top y is %"PCOORD"\n", *top_y);
+  return true;
 }
 
 /* This implementation allows for floating-point error and assumes that
@@ -639,7 +643,10 @@ bool primitive_contains_point(Primitive * const primitive,
   }
 #endif /* BBOX */
 
-  Coord const top_y = primitive_get_top_y(primitive, varray, plane);
+  Coord top_y;
+  if (!primitive_get_top_y(primitive, varray, plane, &top_y)) {
+    return false;
+  }
 
   for (int s = 0;
        s < nsides; ++s,

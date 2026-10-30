@@ -11,9 +11,13 @@ permissions:
 
 jobs:
   mos65c02:
-    name: 65C02 geometry tests
+    name: 65C02 geometry tests bbox ${{ matrix.use_bbox }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        use_bbox: ["ON", "OFF"]
     steps:
       - uses: actions/checkout@v4
 
@@ -32,7 +36,7 @@ jobs:
         run: |
           sdcc --version
           cmake -S . -B build-sdcc -DCMAKE_TOOLCHAIN_FILE=cmake/sdcc-65c02.cmake \
-            -DUSE_OPTIONAL=ON -DWARNINGS_AS_ERRORS=OFF
+            -DUSE_OPTIONAL=ON -DWARNINGS_AS_ERRORS=OFF -DUSE_BBOX=${{ matrix.use_bbox }}
           set -o pipefail
           cmake --build build-sdcc --parallel 2 2>&1 | tee build-sdcc/build.log
           ctest --test-dir build-sdcc --output-on-failure
@@ -41,7 +45,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sdcc-65c02
+          name: sdcc-65c02-bbox-${{ matrix.use_bbox }}
           path: |
             build-sdcc/build.log
             build-sdcc/CMakeFiles/3dObj.dir/*.asm
