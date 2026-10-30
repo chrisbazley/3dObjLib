@@ -742,6 +742,36 @@ static void test32(void)
 }
 #endif
 
+static void test_missing_vertex_containment(void)
+{
+  VertexArray varray;
+  Plane const plane = {0, 1, 2};
+  Coord point[3] = {1, 1, 0};
+
+  vertex_array_init(&varray);
+  int const vertices[] = {
+    add_vertex(&varray, 0, 0, 0),
+    add_vertex(&varray, 4, 0, 0),
+    add_vertex(&varray, 0, 4, 0),
+  };
+  for (size_t side = 0; side < ARRAY_SIZE(vertices); ++side) {
+    assert(vertices[side] >= 0);
+  }
+
+  for (size_t missing = 0; missing < ARRAY_SIZE(vertices); ++missing) {
+    Primitive primitive;
+    primitive_init(&primitive);
+    for (size_t side = 0; side < ARRAY_SIZE(vertices); ++side) {
+      int const vertex = side == missing ?
+        vertex_array_get_num_vertices(&varray) : vertices[side];
+      assert(primitive_add_side(&primitive, vertex) == (int)side);
+    }
+    assert(!primitive_contains_point(&primitive, &varray, &point, plane));
+  }
+
+  vertex_array_free(&varray);
+}
+
 void Primitive_tests(void)
 {
   static const struct
@@ -757,6 +787,7 @@ void Primitive_tests(void)
     {"Convexity", test6},
     {"Coplanarity", test7},
     {"Point containment", test8},
+    {"Point containment with a missing vertex", test_missing_vertex_containment},
     {"Primitive containment", test9},
     {"Primitive equality", test10},
     {"Intersection", test11},

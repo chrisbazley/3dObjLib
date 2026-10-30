@@ -3,6 +3,7 @@ project(3dObjLib C)
 
 option(USE_OPTIONAL "Enable the _Optional qualifier" OFF)
 option(USE_FORTIFY "Enable Fortify memory-allocation checking" OFF)
+option(USE_BBOX "Cache primitive bounding boxes" ON)
 option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
 option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
@@ -131,6 +132,10 @@ target_include_directories(3dObj PUBLIC .)
 target_compile_definitions(3dObj PRIVATE
     $<$<CONFIG:Debug>:DEBUG_OUTPUT>
 )
+
+# Primitive's public layout depends on BBOX, so consumers must agree.
+target_compile_definitions(3dObj PUBLIC BBOX=$<BOOL:${USE_BBOX}>)
+message(STATUS "3dObj primitive bounding-box cache: ${USE_BBOX}")
 
 # Public because a public header uses math.h
 if(UNIX)
