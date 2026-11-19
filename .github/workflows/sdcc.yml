@@ -21,22 +21,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # r17230 omits the mos65c02-stack-auto runtime used by these tests.
       - name: Cache SDCC snapshot
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/sdcc.tar.bz2
-          key: sdcc-linux-amd64-17140-ef5fc1de3b189510
+          key: sdcc-linux-amd64-17200-c5934a4c06f0d415
 
-      - name: Download SDCC trunk r17140
+      - name: Download SDCC trunk r17200
         shell: bash
         run: |
           archive="$RUNNER_TEMP/sdcc.tar.bz2"
           if test ! -f "$archive"; then
             curl --fail --location --retry 3 --max-time 180 \
-              https://downloads.sourceforge.net/project/sdcc/snapshot_builds/amd64-unknown-linux2.5/sdcc-snapshot-amd64-unknown-linux2.5-20261105-17140-cf-x86.tar.bz2 \
+              https://downloads.sourceforge.net/project/sdcc/snapshot_builds/amd64-unknown-linux2.5/sdcc-snapshot-amd64-unknown-linux2.5-20261114-17200-cf-x86.tar.bz2 \
               --output "$archive"
           fi
-          echo "ef5fc1de3b18951056d38778dc9770a65205baed6f1a56838b0f1a5fd5b15f83  $archive" | sha256sum --check
+          echo "c5934a4c06f0d415cddb5c9cb42cb50861421c6dcd387432ad28e022dd4bc0fa  $archive" | sha256sum --check
           tar --no-same-owner -xjf "$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/sdcc/bin" >> "$GITHUB_PATH"
 
