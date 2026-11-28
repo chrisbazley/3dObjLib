@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  mos65c02:
-    name: 65C02 geometry tests bbox ${{ matrix.use_bbox }}
+  z80:
+    name: Z80 geometry tests bbox ${{ matrix.use_bbox }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -26,8 +26,8 @@ jobs:
       - name: Compile, link and run portable tests
         run: |
           sdcc --version
-          cmake -S . -B build-sdcc -DCMAKE_TOOLCHAIN_FILE=cmake/sdcc-65c02.cmake \
-            -DCMAKE_C_FLAGS="-mmos65c02 --enable-warning 378" \
+          cmake -S . -B build-sdcc -DCMAKE_TOOLCHAIN_FILE=cmake/sdcc-z80.cmake \
+            -DCMAKE_C_FLAGS="-mz80 --enable-warning 378" \
             -DUSE_OPTIONAL=ON -DWARNINGS_AS_ERRORS=OFF -DUSE_BBOX=${{ matrix.use_bbox }}
           set -o pipefail
           cmake --build build-sdcc --parallel 2 2>&1 | tee build-sdcc/build.log
@@ -37,7 +37,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sdcc-65c02-bbox-${{ matrix.use_bbox }}
+          name: sdcc-z80-bbox-${{ matrix.use_bbox }}
           path: |
             build-sdcc/build.log
             build-sdcc/CMakeFiles/3dObj.dir/*.asm
