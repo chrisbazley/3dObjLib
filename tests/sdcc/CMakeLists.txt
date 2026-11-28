@@ -1,7 +1,14 @@
 find_package(Python3 3.8 REQUIRED COMPONENTS Interpreter)
-find_program(UCSIM_65C02_EXECUTABLE NAMES ucsim_mos6502)
-if(NOT UCSIM_65C02_EXECUTABLE)
-    message(FATAL_ERROR "SDCC tests require ucsim_mos6502 on PATH")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "z80")
+    set(SDCC_SIMULATOR z80)
+    set(SDCC_LINK_OPTIONS --data-loc 0xf000)
+else()
+    set(SDCC_SIMULATOR mos6502)
+    set(SDCC_LINK_OPTIONS --code-loc 0x2000 --xram-loc 0x0200 "-Wl-a GSINIT=0x2000")
+endif()
+find_program(UCSIM_EXECUTABLE NAMES ucsim_${SDCC_SIMULATOR})
+if(NOT UCSIM_EXECUTABLE)
+    message(FATAL_ERROR "SDCC tests require ucsim_${SDCC_SIMULATOR} on PATH")
 endif()
 
 function(add_geometry_test name group)
@@ -9,11 +16,10 @@ function(add_geometry_test name group)
     target_compile_definitions(${name} PRIVATE TEST_FUNCTION=${group}_tests ${ARGN})
     target_link_libraries(${name} PRIVATE 3dObj)
     target_include_directories(${name} PRIVATE "${cbutil_SOURCE_DIR}")
-    target_link_options(${name} PRIVATE --code-loc 0x2000 --xram-loc 0x0200
-        "-Wl-a GSINIT=0x2000")
+    target_link_options(${name} PRIVATE ${SDCC_LINK_OPTIONS})
     add_test(NAME ${name}
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/run.py"
-            "${UCSIM_65C02_EXECUTABLE}" "$<TARGET_FILE:${name}>")
+            "${UCSIM_EXECUTABLE}" "${SDCC_SIMULATOR}" "$<TARGET_FILE:${name}>")
     set_tests_properties(${name} PROPERTIES TIMEOUT 65)
 endfunction()
 
